@@ -21,6 +21,10 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
   const [links, setLinks] = useState<LinkRow[] | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [waResult, setWaResult] = useState<{
+    kind: string; sent: number; deduped: number;
+    skipped_no_phone: string[]; failed: { name: string; error: string }[];
+  } | null>(null);
   const [onlyPending, setOnlyPending] = useState(false);
 
   async function launch() {
@@ -44,6 +48,22 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
     setBusy(false);
     if (res.ok) { alert(`Closed ${(j as { closed: number }).closed} appraisal(s).`); router.refresh(); }
     else setError((j as { error?: string }).error ?? 'Close failed');
+  }
+
+  async function sendWa(kind: 'invite' | 'reminder') {
+    const what = kind === 'invite'
+      ? 'Send WhatsApp INVITES to everyone in this cycle who has a phone number and has not been invited yet?'
+      : 'Send WhatsApp REMINDERS to everyone with a pending step (and a phone number)?';
+    if (!confirm(what)) return;
+    setBusy(true); setError(null); setWaResult(null);
+    const res = await fetch(`/api/admin/cycles/${cycleId}/send-wa`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind })
+    });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok) setWaResult(j as typeof waResult);
+    else setError((j as { error?: string }).error ?? 'Send failed');
   }
 
   async function purge() {
@@ -111,6 +131,18 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
             {links ? 'Refresh links' : 'Share links (WhatsApp)'}
           </button>
         )}
+        {appraisals > 0 && status === 'live' && (
+          <>
+            <button onClick={() => sendWa('invite')} disabled={busy}
+              className="border border-green-600 text-green-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              Send invites (WhatsApp)
+            </button>
+            <button onClick={() => sendWa('reminder')} disabled={busy}
+              className="border border-amber-500 text-amber-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              Send reminders (pending)
+            </button>
+          </>
+        )}
         {isTest && (
           <button onClick={purge} disabled={busy}
             className="border border-red-600 text-red-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -118,10 +150,29 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
           </button>
         )}
         <span className="text-xs text-slate-500">
-          Links are personal — distribute via WhatsApp. No emails are sent by the system.
+          Links are personal. Send automatically via Twilio WhatsApp, or share manually below. No emails are sent.
         </span>
       </div>
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+      {waResult && (
+        <div className="mt-3 border border-slate-200 rounded-xl p-3 text-sm bg-slate-50">
+          <p className="font-semibold">
+            WhatsApp {waResult.kind}s: {waResult.sent} sent
+            {waResult.deduped > 0 && ` · ${waResult.deduped} already invited (skipped)`}
+          </p>
+          {waResult.skipped_no_phone.length > 0 && (
+            <p className="text-amber-700 mt-1">
+              No phone number ({waResult.skipped_no_phone.length}) — add on the Roster page or use the manual links below:{' '}
+              {waResult.skipped_no_phone.join(', ')}
+            </p>
+          )}
+          {waResult.failed.length > 0 && (
+            <p className="text-red-700 mt-1">
+              Failed ({waResult.failed.length}): {waResult.failed.map(f => `${f.name} (${f.error})`).join('; ')}
+            </p>
+          )}
+        </div>
+      )}
 
       {links && (
         <div className="mt-4 border-t border-slate-100 pt-3">

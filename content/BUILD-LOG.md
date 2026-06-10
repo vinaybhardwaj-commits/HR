@@ -80,3 +80,23 @@
   Audit rows kept; cycle_purge audit entry records per-table delete counts.
 - UI: red "Purge test cycle" button on cycle detail (only when is_test), typed-label
   prompt, redirects to /admin/cycles on success.
+
+## P7 Twilio WhatsApp auto-send — 10 Jun 2026
+- Migration 0008: appraiser.phone + wa_send_log (cycle, recipient, kind, sid, status, error).
+- lib/twilio.ts: ZERO-DEP Twilio REST via fetch. Sandbox mode = free-form Body;
+  production = ContentSid templates (TWILIO_CONTENT_SID_INVITE/_REMINDER) — switching
+  is env-vars only. normalizePhone() → E.164, +91 default. Signature validation helper.
+- POST /api/admin/cycles/[id]/send-wa: HR-triggered bulk send (admin-gated, live cycles
+  only, maxDuration 60, concurrency 5). kind=invite dedups against prior non-failed
+  invites; kind=reminder targets pending only (employee invited/discussed; HOD unscored).
+  No-phone people skipped + reported. Every attempt logged to wa_send_log + audited.
+- POST /api/wa/status: Twilio status callback, X-Twilio-Signature validated (HMAC-SHA1,
+  timing-safe), updates wa_send_log by sid; failed/undelivered sticky.
+- PATCH /api/admin/roster/phone: set/clear employee/appraiser phone (E.164 normalised,
+  audited with truncated number). Roster page: editable Phone column (PhoneCell, save on
+  blur/Enter) + NEW Appraisers (HODs) table with team size + phone.
+- Cycle page: "Send invites (WhatsApp)" + "Send reminders (pending)" buttons with
+  results panel (sent / deduped / no-phone names / failures). Manual links panel stays
+  as fallback. Purge now also clears wa_send_log.
+- Env needed: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
+  (+ optional TWILIO_CONTENT_SID_* for approved templates).

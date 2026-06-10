@@ -45,6 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await del('appraisal', await db`DELETE FROM appraisal WHERE cycle_id = ${cycleId} RETURNING id`);
   await del('assignment', await db`DELETE FROM assignment WHERE cycle_id = ${cycleId} RETURNING id`);
   await del('token', await db`DELETE FROM token WHERE cycle_id = ${cycleId} RETURNING id`);
+  await del('wa_send_log', await db`DELETE FROM wa_send_log WHERE cycle_id = ${cycleId} RETURNING id`);
   await del('cycle', await db`DELETE FROM cycle WHERE id = ${cycleId} RETURNING id`);
 
   await logAudit({
