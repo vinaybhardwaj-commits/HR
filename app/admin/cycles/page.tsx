@@ -11,10 +11,10 @@ export default async function Cycles() {
   const admin = await getCurrentAdmin();
   if (!admin) redirect('/admin');
   const cycles = (await sql()`
-    SELECT c.id, c.label, c.type, c.period_from::text, c.period_to::text, c.status,
+    SELECT c.id, c.label, c.type, c.period_from::text, c.period_to::text, c.status, c.is_test,
            (SELECT count(*)::int FROM appraisal a WHERE a.cycle_id = c.id) AS appraisals
     FROM cycle c ORDER BY c.id DESC`) as
-    { id: number; label: string; type: string; period_from: string; period_to: string; status: string; appraisals: number }[];
+    { id: number; label: string; type: string; period_from: string; period_to: string; status: string; is_test: boolean; appraisals: number }[];
 
   return (
     <AdminShell active="/admin/cycles" adminName={admin.name}>
@@ -31,7 +31,12 @@ export default async function Cycles() {
           <Link key={c.id} href={`/admin/cycles/${c.id}`}
             className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 hover:border-brand">
             <div>
-              <div className="font-semibold">{c.label}</div>
+              <div className="font-semibold">
+                {c.label}
+                {c.is_test && (
+                  <span className="ml-2 text-[10px] font-bold rounded-full px-2 py-0.5 bg-purple-100 text-purple-700 align-middle">TEST</span>
+                )}
+              </div>
               <div className="text-xs text-slate-500">{c.period_from} → {c.period_to} · {c.appraisals} appraisals</div>
             </div>
             <span className={`text-xs font-semibold rounded-full px-3 py-1

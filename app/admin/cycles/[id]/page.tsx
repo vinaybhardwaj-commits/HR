@@ -13,9 +13,9 @@ export default async function CycleDetail({ params }: { params: { id: string } }
   if (!admin) redirect('/admin');
   const cycleId = Number(params.id);
   const cycles = (await sql()`
-    SELECT id, label, type, period_from::text, period_to::text, status, launched_at
+    SELECT id, label, type, period_from::text, period_to::text, status, launched_at, is_test
     FROM cycle WHERE id = ${cycleId}`) as
-    { id: number; label: string; type: string; period_from: string; period_to: string; status: string; launched_at: string | null }[];
+    { id: number; label: string; type: string; period_from: string; period_to: string; status: string; launched_at: string | null; is_test: boolean }[];
   const cycle = cycles[0];
   if (!cycle) notFound();
 
@@ -32,11 +32,16 @@ export default async function CycleDetail({ params }: { params: { id: string } }
 
   return (
     <AdminShell active="/admin/cycles" adminName={admin.name}>
-      <h1 className="text-xl font-bold mb-1">{cycle.label}</h1>
+      <h1 className="text-xl font-bold mb-1">
+        {cycle.label}
+        {cycle.is_test && (
+          <span className="ml-2 text-xs font-bold rounded-full px-2.5 py-1 bg-purple-100 text-purple-700 align-middle">TEST</span>
+        )}
+      </h1>
       <p className="text-sm text-slate-500 mb-5">
         {cycle.period_from} → {cycle.period_to} · status: {cycle.status}
       </p>
-      <CycleControl cycleId={cycle.id} status={cycle.status} appraisals={rows.length} />
+      <CycleControl cycleId={cycle.id} status={cycle.status} appraisals={rows.length} isTest={cycle.is_test} label={cycle.label} />
 
       {rows.length > 0 && (
         <>

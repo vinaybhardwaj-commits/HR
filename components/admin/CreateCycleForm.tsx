@@ -8,6 +8,7 @@ export default function CreateCycleForm() {
   const [type, setType] = useState('H');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [isTest, setIsTest] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -16,11 +17,11 @@ export default function CreateCycleForm() {
     setBusy(true); setError(null);
     const res = await fetch('/api/admin/cycles', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label, type, period_from: from, period_to: to })
+      body: JSON.stringify({ label, type, period_from: from, period_to: to, is_test: isTest })
     });
     const j = await res.json().catch(() => ({}));
     setBusy(false);
-    if (res.ok) { setLabel(''); router.refresh(); }
+    if (res.ok) { setLabel(''); setIsTest(false); router.refresh(); }
     else setError((j as { error?: string }).error ?? 'Failed');
   }
 
@@ -50,6 +51,10 @@ export default function CreateCycleForm() {
         <input type="date" value={to} onChange={e => setTo(e.target.value)} required
           className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
       </div>
+      <label className="flex items-center gap-1.5 text-sm text-slate-600 pb-2.5" title="Test cycles are excluded from the dashboard and report defaults, and can be purged from the cycle page.">
+        <input type="checkbox" checked={isTest} onChange={e => setIsTest(e.target.checked)} />
+        Test cycle
+      </label>
       <button disabled={busy} className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
         {busy ? 'Creating…' : 'Create cycle'}
       </button>

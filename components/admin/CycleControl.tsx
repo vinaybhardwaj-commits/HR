@@ -13,8 +13,8 @@ function waMessage(l: LinkRow): string {
     : `Dear ${l.name.split(' ')[0]},\n\nYour appraisal queue for your team is ready. Use your personal link below to review each self-appraisal and score your team members.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
 }
 
-export default function CycleControl({ cycleId, status, appraisals }:
-  { cycleId: number; status: string; appraisals: number }) {
+export default function CycleControl({ cycleId, status, appraisals, isTest, label }:
+  { cycleId: number; status: string; appraisals: number; isTest?: boolean; label?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +44,21 @@ export default function CycleControl({ cycleId, status, appraisals }:
     setBusy(false);
     if (res.ok) { alert(`Closed ${(j as { closed: number }).closed} appraisal(s).`); router.refresh(); }
     else setError((j as { error?: string }).error ?? 'Close failed');
+  }
+
+  async function purge() {
+    const typed = prompt(
+      `PURGE TEST CYCLE\n\nThis permanently deletes ALL appraisals, scores, sign-offs, links and the cycle itself. Audit entries are kept.\n\nType the cycle label (${label}) to confirm:`);
+    if (typed == null) return;
+    setBusy(true); setError(null);
+    const res = await fetch(`/api/admin/cycles/${cycleId}/purge`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: typed })
+    });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok) { alert('Test cycle purged.'); window.location.href = '/admin/cycles'; }
+    else setError((j as { error?: string }).error ?? 'Purge failed');
   }
 
   async function loadLinks() {
@@ -94,6 +109,12 @@ export default function CycleControl({ cycleId, status, appraisals }:
           <button onClick={loadLinks} disabled={busy}
             className="border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
             {links ? 'Refresh links' : 'Share links (WhatsApp)'}
+          </button>
+        )}
+        {isTest && (
+          <button onClick={purge} disabled={busy}
+            className="border border-red-600 text-red-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+            Purge test cycle
           </button>
         )}
         <span className="text-xs text-slate-500">

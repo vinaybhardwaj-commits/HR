@@ -16,8 +16,9 @@ export default async function Reports({ searchParams }: { searchParams: { cycle?
   if (!admin) redirect('/admin');
   const db = sql();
 
-  const cycles = (await db`SELECT id, label FROM cycle ORDER BY id DESC`) as { id: number; label: string }[];
-  const cycleId = Number(searchParams.cycle ?? cycles[0]?.id ?? 0);
+  const cycles = (await db`SELECT id, label, is_test FROM cycle ORDER BY id DESC`) as { id: number; label: string; is_test: boolean }[];
+  const defaultCycle = cycles.find(c => !c.is_test) ?? cycles[0];
+  const cycleId = Number(searchParams.cycle ?? defaultCycle?.id ?? 0);
 
   const calibration = (await db`
     SELECT ap.full_name AS hod, count(*)::int AS n,
@@ -59,7 +60,7 @@ export default async function Reports({ searchParams }: { searchParams: { cycle?
         <form className="flex items-center gap-2">
           <select name="cycle" defaultValue={cycleId}
             className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
-            {cycles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            {cycles.map(c => <option key={c.id} value={c.id}>{c.label}{c.is_test ? ' (TEST)' : ''}</option>)}
           </select>
           <button className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">View</button>
         </form>

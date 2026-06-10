@@ -9,7 +9,7 @@ export async function GET() {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const rows = await sql()`
-    SELECT c.id, c.label, c.type, c.period_from, c.period_to, c.status, c.launched_at,
+    SELECT c.id, c.label, c.type, c.period_from, c.period_to, c.status, c.launched_at, c.is_test,
            (SELECT count(*)::int FROM appraisal a WHERE a.cycle_id = c.id) AS appraisals
     FROM cycle c ORDER BY c.id DESC`;
   return NextResponse.json({ cycles: rows });
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const b = await req.json().catch(() => null) as
-    { label?: string; type?: string; period_from?: string; period_to?: string } | null;
+    { label?: string; type?: string; period_from?: string; period_to?: string; is_test?: boolean } | null;
   const label = b?.label?.trim();
   const type = b?.type;
   if (!label || !type || !['Q', 'H', 'A'].includes(type) || !b?.period_from || !b?.period_to) {
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'period_from must be before period_to' }, { status: 400 });
   }
   const rows = (await sql()`
-    INSERT INTO cycle (hospital_id, label, type, period_from, period_to)
-    VALUES ((SELECT id FROM hospital WHERE code = 'EHRC'), ${label}, ${type}, ${b.period_from}, ${b.period_to})
+    INSERT INTO cycle (hospital_id, label, type, period_from, period_to, is_test)
+    VALUES ((SELECT id FROM hospital WHERE code = 'EHRC'), ${label}, ${type}, ${b.period_from}, ${b.period_to}, ${b.is_test === true})
     RETURNING id`) as { id: number }[];
-  await logAudit({ actorType: 'admin', actorLabel: admin.email, action: 'cycle_create', meta: { cycleId: rows[0].id, label } });
+  await logAudit({ actorType: 'admin', actorLabel: admin.email, action: 'cycle_create', meta: { cycleId: rows[0].id, label, isTest: b.is_test === true } });
   return NextResponse.json({ ok: true, id: rows[0].id });
 }

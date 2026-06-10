@@ -67,3 +67,16 @@
 - /admin/audit: last 200 events, filter by action substring + appraisal id.
 - Mobile: explicit viewport (device-width, viewport-fit=cover) + theme color; sticky bars
   safe-area padded for iPhone; portals already 16px inputs + ≥44px touch targets.
+
+## P6.1 is_test cycle flag + purge (B5) — 10 Jun 2026
+- Migration 0007: cycle.is_test boolean NOT NULL DEFAULT false.
+- Create-cycle form: "Test cycle" checkbox → POST /api/admin/cycles accepts is_test.
+- TEST badge (purple) on cycles list + cycle detail; reports cycle selector marks
+  "(TEST)" and DEFAULTS to the latest non-test cycle (test cycles stay selectable so
+  the full report flow can be E2E-tested); dashboard "Live cycles" excludes test.
+- POST /api/admin/cycles/[id]/purge: admin-gated, REFUSES non-test cycles (400),
+  requires typed cycle-label confirmation, deletes in FK order (concurrence →
+  training_need → score → email_log → appraisal → assignment → token → cycle).
+  Audit rows kept; cycle_purge audit entry records per-table delete counts.
+- UI: red "Purge test cycle" button on cycle detail (only when is_test), typed-label
+  prompt, redirects to /admin/cycles on success.

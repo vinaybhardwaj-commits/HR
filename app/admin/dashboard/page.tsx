@@ -13,7 +13,7 @@ export default async function Dashboard() {
   const [emp] = (await db`SELECT count(*)::int AS n FROM employee WHERE active`) as { n: number }[];
   const [apr] = (await db`SELECT count(*)::int AS n FROM appraiser WHERE active`) as { n: number }[];
   const [fac] = (await db`SELECT count(*)::int AS n FROM factor WHERE active`) as { n: number }[];
-  const [cyc] = (await db`SELECT count(*)::int AS n FROM cycle WHERE status = 'live'`) as { n: number }[];
+  const [cyc] = (await db`SELECT count(*)::int AS n FROM cycle WHERE status = 'live' AND NOT is_test`) as { n: number }[];
 
   const cards = [
     { label: 'Active employees', value: emp.n },
