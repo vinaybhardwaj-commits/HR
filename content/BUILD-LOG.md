@@ -123,3 +123,9 @@
   no active employees mapped (server 409 + disabled button).
 - APIs: POST/PATCH /api/admin/roster/{employees,appraisers}[/id] — all audited.
 - Roster page now shows inactive rows dimmed; PageHelp rewritten for management.
+
+## Add-admin endpoint — 10 Jun 2026
+- POST /api/admin/admins (Bearer MIGRATION_SECRET): create additional HR admins —
+  bootstrap is one-time-only and /admin/settings (B8) is not built yet. Dup-email
+  409, bcrypt-12, role 'super', audited. Owner runs the curl (same protocol as
+  reset-password); account creation is never done by the assistant.
