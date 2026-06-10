@@ -80,3 +80,9 @@
   Audit rows kept; cycle_purge audit entry records per-table delete counts.
 - UI: red "Purge test cycle" button on cycle detail (only when is_test), typed-label
   prompt, redirects to /admin/cycles on success.
+
+## P7 REVERTED — 10 Jun 2026 (V decision: manual WhatsApp from phones, no Twilio)
+- Full revert of `0eaa472`. Distribution stays the links panel (wa.me share + copy).
+- DB note: migration 0008 had already been applied; the leftover `appraiser.phone`
+  column and empty `wa_send_log` table are additive and harmless — left in place
+  (additive-only migration discipline). No code references them.
