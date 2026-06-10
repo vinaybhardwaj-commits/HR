@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Delete in FK dependency order (Neon HTTP = one statement per call).
   const counts: Record<string, number> = {};
-  const del = async (name: string, rows: unknown[]) => { counts[name] = rows.length; };
+  const del = async (name: string, rows: unknown) => { counts[name] = (rows as unknown[]).length; };
 
   await del('concurrence', await db`
     DELETE FROM concurrence WHERE appraisal_id IN (SELECT id FROM appraisal WHERE cycle_id = ${cycleId}) RETURNING id`);
