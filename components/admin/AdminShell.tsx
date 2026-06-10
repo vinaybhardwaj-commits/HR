@@ -2,8 +2,9 @@ import Link from 'next/link';
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard' },
-  { href: '/admin/roster', label: 'Roster' }
-  // Cycles · Review · Reports · Settings · Audit arrive in P2–P5
+  { href: '/admin/roster', label: 'Roster' },
+  { href: '/admin/cycles', label: 'Cycles' }
+  // Review · Reports · Settings · Audit arrive in P3–P5
 ];
 
 export default function AdminShell({ active, adminName, children }:

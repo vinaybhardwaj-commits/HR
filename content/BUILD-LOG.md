@@ -12,3 +12,17 @@
 - Bootstrap endpoint for first admin (MIGRATION_SECRET-gated, refuses if admin exists) — V runs it.
 - Pages: /admin login, /admin/dashboard (counts), /admin/roster (74-row table, read-only).
 - NOT in P1: cycles, tokens/portals, emails, PDFs, reports (P2–P5 per spec §10).
+
+## P2 Cycle engine + employee portal — 10 Jun 2026
+- Migration 0006: token.secret_enc (AES-256-GCM, key derived from JWT_SECRET) so HR can
+  re-copy portal links anytime; lookup stays sha256-hash-only.
+- Cycle APIs: create, idempotent launch (factor snapshot → assignments from
+  employee.default_appraiser_id → appraisals apr_* → employee+HOD tokens, 1y expiry),
+  board, links (decrypts, audited).
+- Admin UI: Cycles list/create, cycle detail (status chips funnel, board table,
+  Launch + Show-portal-links with per-person Copy buttons).
+- Employee portal /me/[token]: 4-step stepper; state ① Part A form (3 free-text Qs,
+  1–3 goals+measures, training wants, optional satisfaction 1–5 HR-only) with 800ms
+  autosave + submit confirm; state ② wait card; friendly invalid-link page.
+- Email distribution deliberately deferred: roster has no email addresses; links are
+  copy-distributed (WhatsApp/print) per spec §4. Resend wiring = P4 alongside addresses.
