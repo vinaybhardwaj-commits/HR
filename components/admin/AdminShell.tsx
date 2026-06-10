@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import SignOutButton from '@/components/admin/SignOutButton';
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard' },
@@ -24,7 +25,10 @@ export default function AdminShell({ active, adminName, children }:
             </Link>
           ))}
         </nav>
-        <div className="text-xs text-slate-400">{adminName}</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs text-slate-400 truncate">{adminName}</div>
+          <SignOutButton />
+        </div>
       </aside>
       <main className="flex-1 p-8">{children}</main>
     </div>
