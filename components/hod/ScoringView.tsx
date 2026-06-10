@@ -209,7 +209,7 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
       </div>
 
       {/* sticky summary */}
-      <div className="sticky bottom-0 mt-4 -mx-4 sm:-mx-6 border-t border-slate-200 bg-white/95 backdrop-blur px-4 sm:px-6 py-3">
+      <div className="sticky bottom-0 mt-4 -mx-4 sm:-mx-6 border-t border-slate-200 bg-white/95 backdrop-blur px-4 sm:px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {editable ? (
           <div className="flex items-center justify-between gap-3 max-w-5xl mx-auto flex-wrap">
             <div className="text-sm">

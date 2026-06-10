@@ -4,8 +4,9 @@ const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard' },
   { href: '/admin/roster', label: 'Roster' },
   { href: '/admin/cycles', label: 'Cycles' },
-  { href: '/admin/review', label: 'Review' }
-  // Reports · Settings · Audit arrive in P5
+  { href: '/admin/review', label: 'Review' },
+  { href: '/admin/reports', label: 'Reports' },
+  { href: '/admin/audit', label: 'Audit' }
 ];
 
 export default function AdminShell({ active, adminName, children }:

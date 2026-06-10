@@ -7,29 +7,50 @@ import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
-/** Portal links for HR distribution (WhatsApp / print). Access audited. */
+/** Portal links + live status for HR distribution (WhatsApp / print). Access audited. */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const cycleId = Number(params.id);
-  const tokens = (await sql()`
-    SELECT t.role, t.holder_type, t.holder_id, t.label, t.secret_enc,
-           e.full_name AS emp_name, e.emp_code, ap.full_name AS appraiser_name
+  const db = sql();
+
+  const empTokens = (await db`
+    SELECT t.secret_enc, e.full_name, e.emp_code, a.status
     FROM token t
-    LEFT JOIN employee e ON t.holder_type = 'employee' AND e.id = t.holder_id
-    LEFT JOIN appraiser ap ON t.holder_type = 'appraiser' AND ap.id = t.holder_id
-    WHERE t.cycle_id = ${cycleId} AND NOT t.revoked AND t.secret_enc IS NOT NULL`) as {
-    role: string; holder_type: string; holder_id: number; label: string | null; secret_enc: string;
-    emp_name: string | null; emp_code: string | null; appraiser_name: string | null;
-  }[];
+    JOIN employee e ON e.id = t.holder_id
+    LEFT JOIN appraisal a ON a.cycle_id = t.cycle_id AND a.employee_id = e.id
+    WHERE t.cycle_id = ${cycleId} AND t.role = 'employee' AND NOT t.revoked AND t.secret_enc IS NOT NULL
+    ORDER BY e.full_name`) as
+    { secret_enc: string; full_name: string; emp_code: string; status: string | null }[];
+
+  const hodTokens = (await db`
+    SELECT t.secret_enc, ap.full_name,
+      (SELECT count(*)::int FROM appraisal a WHERE a.cycle_id = t.cycle_id AND a.appraiser_id = ap.id AND a.status <> 'cancelled') AS total,
+      (SELECT count(*)::int FROM appraisal a WHERE a.cycle_id = t.cycle_id AND a.appraiser_id = ap.id
+        AND a.status NOT IN ('invited','self_submitted','cancelled')) AS scored
+    FROM token t JOIN appraiser ap ON ap.id = t.holder_id
+    WHERE t.cycle_id = ${cycleId} AND t.role = 'hod' AND NOT t.revoked AND t.secret_enc IS NOT NULL
+    ORDER BY ap.full_name`) as
+    { secret_enc: string; full_name: string; total: number; scored: number }[];
+
   const base = appBaseUrl();
-  const links = tokens.map(t => ({
-    role: t.role,
-    name: t.role === 'employee' ? `${t.emp_name} (${t.emp_code})` : (t.appraiser_name ?? t.label),
-    url: t.role === 'employee'
-      ? `${base}/me/${decryptSecret(t.secret_enc)}`
-      : `${base}/hod/${decryptSecret(t.secret_enc)}`
-  }));
+  const links = [
+    ...hodTokens.map(t => ({
+      role: 'hod' as const,
+      name: t.full_name,
+      status: `${t.scored}/${t.total} scored`,
+      pending: t.scored < t.total,
+      url: `${base}/hod/${decryptSecret(t.secret_enc)}`
+    })),
+    ...empTokens.map(t => ({
+      role: 'employee' as const,
+      name: t.full_name,
+      code: t.emp_code,
+      status: t.status ?? 'no appraisal',
+      pending: t.status === 'invited' || t.status === 'discussed',
+      url: `${base}/me/${decryptSecret(t.secret_enc)}`
+    }))
+  ];
   await logAudit({ actorType: 'admin', actorLabel: admin.email, action: 'links_viewed', meta: { cycleId, n: links.length } });
   return NextResponse.json({ links });
 }

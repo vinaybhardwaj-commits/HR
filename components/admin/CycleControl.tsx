@@ -1,8 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type LinkRow = { role: string; name: string; url: string };
+type LinkRow = {
+  role: 'hod' | 'employee'; name: string; code?: string;
+  status: string; pending: boolean; url: string;
+};
+
+function waMessage(l: LinkRow): string {
+  return l.role === 'employee'
+    ? `Dear ${l.name.split(' ')[0]},\n\nAs part of the Even performance appraisal, please complete your self-appraisal using your personal link below. It takes about 10 minutes and works on your phone.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`
+    : `Dear ${l.name.split(' ')[0]},\n\nYour appraisal queue for your team is ready. Use your personal link below to review each self-appraisal and score your team members.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
+}
 
 export default function CycleControl({ cycleId, status, appraisals }:
   { cycleId: number; status: string; appraisals: number }) {
@@ -11,9 +20,11 @@ export default function CycleControl({ cycleId, status, appraisals }:
   const [error, setError] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkRow[] | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [onlyPending, setOnlyPending] = useState(false);
 
   async function launch() {
-    if (!confirm(`Launch this cycle? This creates appraisals and personal links for all active staff.`)) return;
+    if (!confirm('Launch this cycle? This creates appraisals and personal links for all active staff.')) return;
     setBusy(true); setError(null);
     const res = await fetch(`/api/admin/cycles/${cycleId}/launch`, { method: 'POST' });
     const j = await res.json().catch(() => ({}));
@@ -44,10 +55,24 @@ export default function CycleControl({ cycleId, status, appraisals }:
     else setError('Could not load links');
   }
 
-  async function copy(url: string, name: string) {
-    await navigator.clipboard.writeText(url);
-    setCopied(name);
+  async function copy(text: string, key: string) {
+    await navigator.clipboard.writeText(text);
+    setCopied(key);
     setTimeout(() => setCopied(null), 1500);
+  }
+
+  const filtered = useMemo(() => {
+    if (!links) return [];
+    const needle = q.toLowerCase();
+    return links.filter(l =>
+      (!onlyPending || l.pending) &&
+      (!needle || l.name.toLowerCase().includes(needle) || (l.code ?? '').toLowerCase().includes(needle)));
+  }, [links, q, onlyPending]);
+
+  function copyChaseList(role: 'employee' | 'hod') {
+    const pend = (links ?? []).filter(l => l.role === role && l.pending);
+    const text = pend.map(l => `${l.name}${l.code ? ` (${l.code})` : ''} — ${l.status}\n${l.url}`).join('\n\n');
+    copy(text || 'Nothing pending 🎉', `chase-${role}`);
   }
 
   return (
@@ -68,32 +93,73 @@ export default function CycleControl({ cycleId, status, appraisals }:
         {appraisals > 0 && (
           <button onClick={loadLinks} disabled={busy}
             className="border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-            {links ? 'Refresh links' : 'Show portal links'}
+            {links ? 'Refresh links' : 'Share links (WhatsApp)'}
           </button>
         )}
         <span className="text-xs text-slate-500">
-          Links are personal — share each via WhatsApp/print. Email invites arrive once addresses are added.
+          Links are personal — distribute via WhatsApp. No emails are sent by the system.
         </span>
       </div>
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+
       {links && (
-        <div className="mt-4 max-h-96 overflow-y-auto border-t border-slate-100 pt-3">
-          {(['hod', 'employee'] as const).map(role => (
-            <div key={role} className="mb-3">
-              <div className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                {role === 'hod' ? 'HOD links' : 'Employee links'}
-              </div>
-              {links.filter(l => l.role === role).map(l => (
-                <div key={l.url} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
-                  <span className="text-sm">{l.name}</span>
-                  <button onClick={() => copy(l.url, l.name)}
-                    className="text-xs border border-slate-300 rounded-md px-2.5 py-1 hover:border-brand">
-                    {copied === l.name ? 'Copied ✓' : 'Copy link'}
-                  </button>
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or code…"
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-48" />
+            <label className="flex items-center gap-1.5 text-sm text-slate-600">
+              <input type="checkbox" checked={onlyPending} onChange={e => setOnlyPending(e.target.checked)} />
+              Pending only
+            </label>
+            <div className="flex-1" />
+            <button onClick={() => copyChaseList('employee')}
+              className="text-xs border border-slate-300 rounded-md px-2.5 py-1.5 hover:border-brand">
+              {copied === 'chase-employee' ? 'Copied ✓' : 'Copy pending list (employees)'}
+            </button>
+            <button onClick={() => copyChaseList('hod')}
+              className="text-xs border border-slate-300 rounded-md px-2.5 py-1.5 hover:border-brand">
+              {copied === 'chase-hod' ? 'Copied ✓' : 'Copy pending list (HODs)'}
+            </button>
+          </div>
+
+          <div className="max-h-[28rem] overflow-y-auto">
+            {(['hod', 'employee'] as const).map(role => {
+              const items = filtered.filter(l => l.role === role);
+              if (!items.length) return null;
+              return (
+                <div key={role} className="mb-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-1">
+                    {role === 'hod' ? `HODs · ${items.length}` : `Employees · ${items.length}`}
+                  </div>
+                  {items.map(l => (
+                    <div key={l.url} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm">{l.name}</span>
+                        <span className={`ml-2 text-[10px] rounded-full px-2 py-0.5 align-middle
+                          ${l.pending ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                          {l.status}
+                        </span>
+                      </div>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(waMessage(l))}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-xs border border-green-600 text-green-700 rounded-md px-2.5 py-1 hover:bg-green-50 shrink-0">
+                        WhatsApp
+                      </a>
+                      <button onClick={() => copy(waMessage(l), `msg-${l.url}`)}
+                        className="text-xs border border-slate-300 rounded-md px-2.5 py-1 hover:border-brand shrink-0">
+                        {copied === `msg-${l.url}` ? 'Copied ✓' : 'Copy message'}
+                      </button>
+                      <button onClick={() => copy(l.url, `url-${l.url}`)}
+                        className="text-xs border border-slate-300 rounded-md px-2.5 py-1 hover:border-brand shrink-0">
+                        {copied === `url-${l.url}` ? '✓' : 'Link'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ))}
+              );
+            })}
+            {filtered.length === 0 && <p className="text-sm text-slate-500 py-3">No matches.</p>}
+          </div>
         </div>
       )}
     </div>

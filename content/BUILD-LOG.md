@@ -53,3 +53,17 @@
 - PDF: on-demand via @react-pdf/renderer (NEW DEP) at GET /api/admin/appraisals/[id]/pdf —
   A4, Parts A–D, band, e-sign blocks, generation footer; no blob storage needed (data is
   frozen at close; PDF renders fresh each request, access audited).
+
+## P5 WhatsApp-first distribution + reports + audit + mobile polish — 10 Jun 2026
+- EMAIL FULLY SKIPPED by V's decision: distribution = links only.
+- Links panel v2 (cycle page): search, pending-only filter, per-person live status
+  (employee appraisal status / HOD x-of-y scored), per-row [WhatsApp] (wa.me share with
+  pre-composed personal message incl. "do not forward"), [Copy message], [Copy link],
+  bulk "Copy pending list" for employees/HODs = HR chase lists (replaces reminder cron).
+- /admin/reports (cycle selector): calibration per HOD (n, mean/min/max %, O/C/A/I counts,
+  leniency note), band distribution by track (bars), training-needs rollup with names;
+  CSV download per report (/api/admin/reports/{calibration,bands,training}?cycle=N —
+  bands CSV = full per-employee export).
+- /admin/audit: last 200 events, filter by action substring + appraisal id.
+- Mobile: explicit viewport (device-width, viewport-fit=cover) + theme color; sticky bars
+  safe-area padded for iPhone; portals already 16px inputs + ≥44px touch targets.
