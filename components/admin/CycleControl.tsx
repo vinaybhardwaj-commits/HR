@@ -46,6 +46,22 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
     else setError((j as { error?: string }).error ?? 'Close failed');
   }
 
+  async function setTestFlag(next: boolean) {
+    const msg = next
+      ? `Mark "${label}" as a TEST cycle?\n\nIt will be excluded from the dashboard count and report defaults, and the Purge button will appear so it can be deleted. Use this for sandbox/rehearsal cycles only.`
+      : `Unmark "${label}" as a test cycle? It becomes a normal cycle again (purge disabled).`;
+    if (!confirm(msg)) return;
+    setBusy(true); setError(null);
+    const res = await fetch(`/api/admin/cycles/${cycleId}/test-flag`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_test: next })
+    });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok) router.refresh();
+    else setError((j as { error?: string }).error ?? 'Update failed');
+  }
+
   async function purge() {
     const typed = prompt(
       `PURGE TEST CYCLE\n\nThis permanently deletes ALL appraisals, scores, sign-offs, links and the cycle itself. Audit entries are kept.\n\nType the cycle label (${label}) to confirm:`);
@@ -111,11 +127,23 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
             {links ? 'Refresh links' : 'Share links (WhatsApp)'}
           </button>
         )}
-        {isTest && (
-          <button onClick={purge} disabled={busy}
-            className="border border-red-600 text-red-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-            Purge test cycle
+        {!isTest && (
+          <button onClick={() => setTestFlag(true)} disabled={busy}
+            className="border border-purple-500 text-purple-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+            Mark as test cycle…
           </button>
+        )}
+        {isTest && (
+          <>
+            <button onClick={purge} disabled={busy}
+              className="border border-red-600 text-red-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              Purge test cycle
+            </button>
+            <button onClick={() => setTestFlag(false)} disabled={busy}
+              className="border border-slate-300 text-slate-600 rounded-lg px-3 py-2 text-xs font-medium disabled:opacity-50">
+              Unmark test
+            </button>
+          </>
         )}
         <span className="text-xs text-slate-500">
           Links are personal — distribute via WhatsApp. No emails are sent by the system.

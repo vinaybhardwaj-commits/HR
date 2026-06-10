@@ -86,3 +86,10 @@
 - DB note: migration 0008 had already been applied; the leftover `appraiser.phone`
   column and empty `wa_send_log` table are additive and harmless — left in place
   (additive-only migration discipline). No code references them.
+
+## P6.2 mark/unmark test cycle — 10 Jun 2026
+- Gap found by V: cycles created without the Test checkbox (or pre-0007) could never
+  be deleted — purge refuses non-test and there was no way to flag after creation.
+- POST /api/admin/cycles/[id]/test-flag {is_test} (admin-gated, audited cycle_test_flag).
+- Cycle page: "Mark as test cycle…" (purple, with confirm explaining consequences) on
+  non-test cycles; "Unmark test" next to Purge on test cycles.
