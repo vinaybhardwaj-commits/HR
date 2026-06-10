@@ -3,60 +3,96 @@ import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
 import PageHelp from '@/components/admin/PageHelp';
+import { AddEmployeeForm, AddAppraiserForm } from '@/components/admin/RosterAddForms';
+import { EmployeeRowControls, AppraiserRowControls } from '@/components/admin/RosterControls';
 
 export const dynamic = 'force-dynamic';
 
 type Row = {
-  emp_code: string; full_name: string; department: string; sub_department: string;
-  designation: string; track: string; hod: string | null;
+  id: number; emp_code: string; full_name: string; department: string; sub_department: string;
+  designation: string; track: string; active: boolean; default_appraiser_id: number; hod: string | null;
 };
+type HodRow = { id: number; full_name: string; active: boolean; team: number };
 
 export default async function Roster() {
   const admin = await getCurrentAdmin();
   if (!admin) redirect('/admin');
 
   const rows = (await sql()`
-    SELECT e.emp_code, e.full_name, e.department, e.sub_department, e.designation, e.track,
-           a.full_name AS hod
+    SELECT e.id, e.emp_code, e.full_name, e.department, e.sub_department, e.designation, e.track,
+           e.active, e.default_appraiser_id, a.full_name AS hod
     FROM employee e
     LEFT JOIN appraiser a ON a.id = e.default_appraiser_id
-    WHERE e.active
-    ORDER BY e.emp_code`) as Row[];
+    ORDER BY e.active DESC, e.emp_code`) as Row[];
+
+  const hods = (await sql()`
+    SELECT a.id, a.full_name, a.active,
+           (SELECT count(*)::int FROM employee e WHERE e.default_appraiser_id = a.id AND e.active) AS team
+    FROM appraiser a
+    ORDER BY a.active DESC, a.full_name`) as HodRow[];
+
+  const activeHods = hods.filter(h => h.active).map(h => ({ id: h.id, full_name: h.full_name }));
+  const activeCount = rows.filter(r => r.active).length;
 
   return (
     <AdminShell active="/admin/roster" adminName={admin.name}>
       <h1 className="text-xl font-bold mb-1">Roster</h1>
-      <p className="text-sm text-slate-500 mb-6">
-        {rows.length} active employees, as provided by HR.
+      <p className="text-sm text-slate-500 mb-4">
+        {activeCount} active employees · {activeHods.length} active HODs.
       </p>
       <PageHelp items={[
-        'Track decides which 4 of the 9 appraisal factors apply: Clinical (teal) or Non-clinical (amber). Spot-check these before launching a real cycle.',
-        'HOD is the default appraiser — at cycle launch each employee\u2019s appraisal is assigned to this person. Every employee must have an HOD or launch will refuse and name the gaps.',
-        'The roster is read-only here for now; corrections (names, tracks, HOD changes) go through HR and are applied by the system administrator. A roster editor and import wizard are on the backlog.'
+        'Add employees and HODs here; everything saves instantly and is audit-logged.',
+        'New joiner while a cycle is live: add them, then open the cycle and press “Re-run launch (fill missing)” — that creates their appraisal and personal link without touching anyone else.',
+        'Lateral move: change the HOD in the row. If their live-cycle appraisal is not yet scored it moves to the new HOD immediately (the new HOD gets a link if they lack one); if already scored it stays with the scorer for this cycle and only future cycles follow the new mapping. The row tells you which happened.',
+        'Track decides which 4 of the 9 factors apply (Clinical / Non-clinical). Changing it is blocked once scoring has started in a live cycle.',
+        'Leavers: Deactivate — they are excluded from future launches; cancel any open appraisal from the cycle board. HODs can only be deactivated once nobody is mapped to them.'
       ]} />
+      <AddEmployeeForm hods={activeHods} />
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
               <th className="px-4 py-3">Code</th><th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Sub-department</th><th className="px-4 py-3">Designation</th>
-              <th className="px-4 py-3">Track</th><th className="px-4 py-3">HOD</th>
+              <th className="px-4 py-3">HOD / Track / Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.emp_code} className="border-b border-slate-100 last:border-0">
+              <tr key={r.id} className={`border-b border-slate-100 last:border-0 ${r.active ? '' : 'opacity-45'}`}>
                 <td className="px-4 py-2.5 font-mono text-xs">{r.emp_code}</td>
-                <td className="px-4 py-2.5 font-medium">{r.full_name}</td>
+                <td className="px-4 py-2.5 font-medium">{r.full_name}{!r.active && <span className="ml-2 text-[10px] text-slate-400">(inactive)</span>}</td>
                 <td className="px-4 py-2.5 text-slate-600">{r.sub_department}</td>
                 <td className="px-4 py-2.5 text-slate-600">{r.designation}</td>
                 <td className="px-4 py-2.5">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    r.track === 'C' ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {r.track === 'C' ? 'Clinical' : 'Non-clinical'}
-                  </span>
+                  <EmployeeRowControls id={r.id} name={r.full_name} hodId={r.default_appraiser_id}
+                    track={r.track} active={r.active} hods={activeHods} />
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">{r.hod ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="text-lg font-bold mt-8 mb-3">Appraisers (HODs)</h2>
+      <AddAppraiserForm />
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Team size</th>
+              <th className="px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {hods.map(h => (
+              <tr key={h.id} className={`border-b border-slate-100 last:border-0 ${h.active ? '' : 'opacity-45'}`}>
+                <td className="px-4 py-2.5 font-medium">{h.full_name}</td>
+                <td className="px-4 py-2.5 text-slate-600">{h.team}</td>
+                <td className="px-4 py-2.5">
+                  <AppraiserRowControls id={h.id} name={h.full_name} active={h.active} team={h.team} />
+                </td>
               </tr>
             ))}
           </tbody>

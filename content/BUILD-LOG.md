@@ -109,3 +109,17 @@
 ## WhatsApp message copy — full name — 10 Jun 2026
 - V: greeting must use the FULL roster name, not first token ("Dear A," for initial-
   first names). waMessage() now uses l.name verbatim for employees and HODs.
+
+## P8 Roster management — 10 Jun 2026
+- Add employee (code/name/dept/sub-dept/designation/track/HOD; dup-code 409; live-cycle
+  hint: re-run launch to mint their appraisal+link). Add HOD (dup-name guard; gets a
+  queue link once mapped + launch re-run).
+- HOD remap per row. LATERAL MOVE RULE (V): live-cycle appraisal NOT yet scored
+  (invited/self_submitted) moves to the new HOD immediately (appraisal + assignment
+  updated, HOD link minted if missing); scored/discussed stays with the scorer for the
+  cycle — future cycles follow the new mapping. Row reports which happened.
+- Track edit (guarded: refused once scores exist in a live cycle). Deactivate/
+  reactivate employees (leavers; open-appraisal warning). Deactivate HOD only when
+  no active employees mapped (server 409 + disabled button).
+- APIs: POST/PATCH /api/admin/roster/{employees,appraisers}[/id] — all audited.
+- Roster page now shows inactive rows dimmed; PageHelp rewritten for management.
