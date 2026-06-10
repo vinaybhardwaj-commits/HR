@@ -93,3 +93,15 @@
 - POST /api/admin/cycles/[id]/test-flag {is_test} (admin-gated, audited cycle_test_flag).
 - Cycle page: "Mark as test cycle…" (purple, with confirm explaining consequences) on
   non-test cycles; "Unmark test" next to Purge on test cycles.
+
+## B9 launch timeout fix — 10 Jun 2026
+- V report: "Launch cycle" hung; reload showed status live but only 13/74 invited.
+- Cause: per-employee loop = ~370 sequential Neon HTTP round trips, each iad1→sin1
+  (~250ms) → 60s maxDuration hit after ~13 employees; gateway killed the response so
+  the button never resolved. Idempotent design meant re-runs would fill, but slowly.
+- Fix 1: launch rewritten SET-BASED — assignments + appraisals as single INSERT…SELECT
+  (appraisal ids via gen_random_uuid in SQL); missing tokens minted in JS and inserted
+  per-role via ONE unnest() statement. ~10 statements total at any headcount.
+- Fix 2: vercel.json "regions": ["sin1"] — functions now run next to the DB; every
+  DB-touching page/API gets the latency win.
+- Launch response now also returns totalAppraisals/totalTokens for verification.

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
 import { sql } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
@@ -10,11 +9,14 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * Launch a cycle (idempotent — safe to re-run; fills anything missing):
+ * Launch a cycle (idempotent — safe to re-run; fills anything missing).
+ * SET-BASED (B9): a fixed ~10 statements regardless of headcount. The original
+ * per-employee loop (~370 round trips) timed out cross-region and left partial
+ * launches (only re-run could fill them).
  * 1. Gate: every active employee has a default appraiser.
  * 2. Snapshot active factors into cycle.factor_snapshot.
- * 3. Per employee: assignment + appraisal + employee token.
- * 4. Per appraiser in use: hod token.
+ * 3. Set-based assignment + appraisal inserts (ids generated in SQL).
+ * 4. Mint missing tokens in JS, insert each role's batch via ONE unnest() insert.
  */
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = await getCurrentAdmin();
@@ -38,47 +40,68 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   await db`UPDATE cycle SET factor_snapshot = ${JSON.stringify(factors)}::jsonb,
            status = 'live', launched_at = COALESCE(launched_at, now()) WHERE id = ${cycleId}`;
 
-  const employees = (await db`
-    SELECT id, default_appraiser_id FROM employee WHERE active`) as { id: number; default_appraiser_id: number }[];
+  // 3a. Assignments — one statement.
+  await db`
+    INSERT INTO assignment (cycle_id, employee_id, appraiser_id)
+    SELECT ${cycleId}, e.id, e.default_appraiser_id FROM employee e WHERE e.active
+    ON CONFLICT (cycle_id, employee_id) DO NOTHING`;
 
-  const expiry = `now() + interval '1 year'`; // revoked/rotated at close + 30d during close-out (P4)
-  let createdAppraisals = 0, createdTokens = 0;
+  // 3b. Appraisals — one statement, ids generated in SQL (apr_ + uuid hex).
+  const insAppr = (await db`
+    INSERT INTO appraisal (id, cycle_id, employee_id, appraiser_id)
+    SELECT 'apr_' || replace(gen_random_uuid()::text, '-', ''), ${cycleId}, e.id, e.default_appraiser_id
+    FROM employee e WHERE e.active
+    ON CONFLICT (cycle_id, employee_id) DO NOTHING
+    RETURNING id`) as { id: string }[];
+  const createdAppraisals = insAppr.length;
 
-  for (const e of employees) {
-    await db`INSERT INTO assignment (cycle_id, employee_id, appraiser_id)
-             VALUES (${cycleId}, ${e.id}, ${e.default_appraiser_id})
-             ON CONFLICT (cycle_id, employee_id) DO NOTHING`;
-    const apId = `apr_${randomBytes(8).toString('base64url')}`;
-    const ins = (await db`INSERT INTO appraisal (id, cycle_id, employee_id, appraiser_id)
-             VALUES (${apId}, ${cycleId}, ${e.id}, ${e.default_appraiser_id})
-             ON CONFLICT (cycle_id, employee_id) DO NOTHING RETURNING id`) as { id: string }[];
-    if (ins.length) createdAppraisals++;
-    const existing = (await db`SELECT id FROM token WHERE cycle_id = ${cycleId} AND role = 'employee'
-             AND holder_type = 'employee' AND holder_id = ${e.id} AND NOT revoked`) as { id: number }[];
-    if (!existing.length) {
+  // 4a. Employee tokens — find holders missing one, mint in JS, single unnest insert.
+  const empNeeding = (await db`
+    SELECT e.id FROM employee e WHERE e.active AND NOT EXISTS (
+      SELECT 1 FROM token t WHERE t.cycle_id = ${cycleId} AND t.role = 'employee'
+        AND t.holder_type = 'employee' AND t.holder_id = e.id AND NOT t.revoked)`) as { id: number }[];
+  let createdTokens = 0;
+  if (empNeeding.length > 0) {
+    const hashes: string[] = [], ids: number[] = [], encs: string[] = [];
+    for (const e of empNeeding) {
       const { secret, hash } = mintToken();
-      await db`INSERT INTO token (token_hash, role, holder_type, holder_id, cycle_id, expires_at, secret_enc)
-               VALUES (${hash}, 'employee', 'employee', ${e.id}, ${cycleId}, now() + interval '1 year', ${encryptSecret(secret)})`;
-      createdTokens++;
+      hashes.push(hash); ids.push(e.id); encs.push(encryptSecret(secret));
     }
+    await db`
+      INSERT INTO token (token_hash, role, holder_type, holder_id, cycle_id, expires_at, secret_enc)
+      SELECT u.hash, 'employee', 'employee', u.holder_id, ${cycleId}, now() + interval '1 year', u.secret_enc
+      FROM unnest(${hashes}::text[], ${ids}::int[], ${encs}::text[]) AS u(hash, holder_id, secret_enc)`;
+    createdTokens += empNeeding.length;
   }
 
-  const appraisers = (await db`
+  // 4b. HOD tokens — same pattern, with name labels.
+  const hodNeeding = (await db`
     SELECT DISTINCT a.id, a.full_name FROM appraiser a
-    JOIN assignment s ON s.appraiser_id = a.id WHERE s.cycle_id = ${cycleId}`) as { id: number; full_name: string }[];
-  for (const ap of appraisers) {
-    const existing = (await db`SELECT id FROM token WHERE cycle_id = ${cycleId} AND role = 'hod'
-             AND holder_type = 'appraiser' AND holder_id = ${ap.id} AND NOT revoked`) as { id: number }[];
-    if (!existing.length) {
+    JOIN assignment s ON s.appraiser_id = a.id AND s.cycle_id = ${cycleId}
+    WHERE NOT EXISTS (
+      SELECT 1 FROM token t WHERE t.cycle_id = ${cycleId} AND t.role = 'hod'
+        AND t.holder_type = 'appraiser' AND t.holder_id = a.id AND NOT t.revoked)`) as
+    { id: number; full_name: string }[];
+  if (hodNeeding.length > 0) {
+    const hashes: string[] = [], ids: number[] = [], labels: string[] = [], encs: string[] = [];
+    for (const ap of hodNeeding) {
       const { secret, hash } = mintToken();
-      await db`INSERT INTO token (token_hash, role, holder_type, holder_id, cycle_id, label, expires_at, secret_enc)
-               VALUES (${hash}, 'hod', 'appraiser', ${ap.id}, ${cycleId}, ${ap.full_name}, now() + interval '1 year', ${encryptSecret(secret)})`;
-      createdTokens++;
+      hashes.push(hash); ids.push(ap.id); labels.push(ap.full_name); encs.push(encryptSecret(secret));
     }
+    await db`
+      INSERT INTO token (token_hash, role, holder_type, holder_id, cycle_id, label, expires_at, secret_enc)
+      SELECT u.hash, 'hod', 'appraiser', u.holder_id, ${cycleId}, u.label, now() + interval '1 year', u.secret_enc
+      FROM unnest(${hashes}::text[], ${ids}::int[], ${labels}::text[], ${encs}::text[]) AS u(hash, holder_id, label, secret_enc)`;
+    createdTokens += hodNeeding.length;
   }
+
+  const [counts] = (await db`
+    SELECT (SELECT count(*)::int FROM appraisal WHERE cycle_id = ${cycleId}) AS appraisals,
+           (SELECT count(*)::int FROM token WHERE cycle_id = ${cycleId} AND NOT revoked) AS tokens`) as
+    { appraisals: number; tokens: number }[];
 
   await logAudit({ actorType: 'admin', actorLabel: admin.email, action: 'cycle_launch',
-    meta: { cycleId, createdAppraisals, createdTokens } });
+    meta: { cycleId, createdAppraisals, createdTokens, totalAppraisals: counts.appraisals, totalTokens: counts.tokens } });
   return NextResponse.json({ ok: true, cycleId, createdAppraisals, createdTokens,
-    employees: employees.length, appraisers: appraisers.length });
+    totalAppraisals: counts.appraisals, totalTokens: counts.tokens });
 }
