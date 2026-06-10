@@ -3,6 +3,7 @@ import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
 import CycleControl from '@/components/admin/CycleControl';
+import RowActions from '@/components/admin/RowActions';
 import { STATUS_META, type AppraisalStatus } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,7 @@ export default async function CycleDetail({ params }: { params: { id: string } }
                   <th className="px-4 py-3">Code</th><th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Sub-dept</th><th className="px-4 py-3">HOD</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,6 +69,7 @@ export default async function CycleDetail({ params }: { params: { id: string } }
                         {STATUS_META[r.status].label}
                       </span>
                     </td>
+                    <td className="px-4 py-2.5"><RowActions appraisalId={r.id} status={r.status} /></td>
                   </tr>
                 ))}
               </tbody>

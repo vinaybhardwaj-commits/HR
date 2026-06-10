@@ -38,3 +38,18 @@
 - APIs /api/hod/score (draft upsert + submit with server-side validation + totals) and
   /api/hod/discussion; both resolve token AND verify appraisal belongs to that appraiser (no IDOR).
 - Employee /me page now advances to step ③ display when discussed (full read-only view + concurrence = P4).
+
+## P4 Concurrence + review + close + PDF — 10 Jun 2026
+- /me step ③④: full read-only assessment AFTER discussion marked (scores+levels+examples,
+  band, training plan), Part D radio (agree / agree_remarks / disagree), remarks required for
+  the latter two, typed-name e-sign validated against roster name; signed summary state.
+- /api/me/concur: state-gated (discussed only), name match normalised, concurrence row +
+  transition; disagree routes to HR.
+- /admin/review: disagreement queue with employee remarks → "Mark resolved (uphold)" or
+  "Reopen for re-scoring" (reopen clears totals/discussion/sign-off, scores back to draft).
+- /api/admin/appraisals/[id]/action: override_self / cancel / resolve / reopen (reason
+  required, audited). RowActions on cycle board: Unlock scoring (invited), Cancel, PDF (closed).
+- Bulk close: "Close signed-off" on cycle page → concurred + hr_review → closed.
+- PDF: on-demand via @react-pdf/renderer (NEW DEP) at GET /api/admin/appraisals/[id]/pdf —
+  A4, Parts A–D, band, e-sign blocks, generation footer; no blob storage needed (data is
+  frozen at close; PDF renders fresh each request, access audited).

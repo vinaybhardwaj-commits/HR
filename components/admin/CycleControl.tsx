@@ -22,6 +22,19 @@ export default function CycleControl({ cycleId, status, appraisals }:
     else setError((j as { error?: string }).error ?? 'Launch failed');
   }
 
+  async function closeAll() {
+    if (!confirm('Close all signed-off (concurred / HR-resolved) appraisals in this cycle? PDFs become available after close.')) return;
+    setBusy(true); setError(null);
+    const res = await fetch('/api/admin/appraisals/close', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cycleId })
+    });
+    const j = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok) { alert(`Closed ${(j as { closed: number }).closed} appraisal(s).`); router.refresh(); }
+    else setError((j as { error?: string }).error ?? 'Close failed');
+  }
+
   async function loadLinks() {
     setBusy(true); setError(null);
     const res = await fetch(`/api/admin/cycles/${cycleId}/links`);
@@ -44,6 +57,12 @@ export default function CycleControl({ cycleId, status, appraisals }:
           <button onClick={launch} disabled={busy}
             className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
             {appraisals > 0 ? 'Re-run launch (fill missing)' : 'Launch cycle'}
+          </button>
+        )}
+        {appraisals > 0 && status === 'live' && (
+          <button onClick={closeAll} disabled={busy}
+            className="border border-green-600 text-green-700 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+            Close signed-off
           </button>
         )}
         {appraisals > 0 && (
