@@ -105,3 +105,7 @@
 - Fix 2: vercel.json "regions": ["sin1"] — functions now run next to the DB; every
   DB-touching page/API gets the latency win.
 - Launch response now also returns totalAppraisals/totalTokens for verification.
+
+## WhatsApp message copy — full name — 10 Jun 2026
+- V: greeting must use the FULL roster name, not first token ("Dear A," for initial-
+  first names). waMessage() now uses l.name verbatim for employees and HODs.

@@ -9,8 +9,8 @@ type LinkRow = {
 
 function waMessage(l: LinkRow): string {
   return l.role === 'employee'
-    ? `Dear ${l.name.split(' ')[0]},\n\nAs part of the Even performance appraisal, please complete your self-appraisal using your personal link below. It takes about 10 minutes and works on your phone.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`
-    : `Dear ${l.name.split(' ')[0]},\n\nYour appraisal queue for your team is ready. Use your personal link below to review each self-appraisal and score your team members.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
+    ? `Dear ${l.name},\n\nAs part of the Even performance appraisal, please complete your self-appraisal using your personal link below. It takes about 10 minutes and works on your phone.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`
+    : `Dear ${l.name},\n\nYour appraisal queue for your team is ready. Use your personal link below to review each self-appraisal and score your team members.\n\n${l.url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
 }
 
 export default function CycleControl({ cycleId, status, appraisals, isTest, label }:
