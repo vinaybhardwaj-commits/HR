@@ -26,3 +26,15 @@
   autosave + submit confirm; state ② wait card; friendly invalid-link page.
 - Email distribution deliberately deferred: roster has no email addresses; links are
   copy-distributed (WhatsApp/print) per spec §4. Resend wiring = P4 alongside addresses.
+
+## P3 HOD queue + scoring — 10 Jun 2026
+- /hod/[token]: actionability-grouped queue (ready to score / draft / waiting / discussion pending / done),
+  progress bar, aging on ready items; waiting rows not clickable.
+- /hod/[token]/a/[id]: ownership-checked scoring view — Part A read-only (split desktop / tabs mobile),
+  factor cards from cycle snapshot (ALL + track), tap-a-score shows that level's anchor, example
+  required for 1/2/5 (amber outline until filled), training needs (≤3, category+detail),
+  1.2s autosave + Save draft + gated Submit (9/9 + examples), live total/%/band sticky bar;
+  after submit → date picker + "Discussion held" (scored → discussed); read-only afterwards.
+- APIs /api/hod/score (draft upsert + submit with server-side validation + totals) and
+  /api/hod/discussion; both resolve token AND verify appraisal belongs to that appraiser (no IDOR).
+- Employee /me page now advances to step ③ display when discussed (full read-only view + concurrence = P4).
