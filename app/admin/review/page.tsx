@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
+import PageHelp from '@/components/admin/PageHelp';
 import ReviewActions from '@/components/admin/ReviewActions';
 
 export const dynamic = 'force-dynamic';
@@ -27,9 +28,15 @@ export default async function Review() {
   return (
     <AdminShell active="/admin/review" adminName={admin.name}>
       <h1 className="text-xl font-bold mb-1">Disagreement review</h1>
-      <p className="text-sm text-slate-500 mb-6">
-        Appraisals where the employee disagreed. Resolve each before close-out.
+      <p className="text-sm text-slate-500 mb-4">
+        Appraisals where the employee signed with disagreement. Each must be resolved before it can close.
       </p>
+      <PageHelp items={[
+        'When an employee chooses \u201CDisagree\u201D at sign-off, their appraisal lands here with their written remarks. It cannot be closed until HR acts.',
+        '\u201CResolve (uphold)\u201D keeps the HOD\u2019s assessment, records your resolution notes on file, and lets the appraisal close.',
+        '\u201CReopen\u201D sends it back for re-scoring: totals, discussion and sign-off are cleared, scores return to draft, and the employee + HOD repeat the flow from scoring.',
+        'Speak to both parties before deciding — the notes you record here appear in the audit trail and stay on the record.'
+      ]} />
       {rows.length === 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 text-sm text-slate-500">
           Nothing to review — no disagreements. 🎉

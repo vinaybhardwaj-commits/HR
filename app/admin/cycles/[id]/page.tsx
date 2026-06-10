@@ -3,6 +3,7 @@ import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
 import CycleControl from '@/components/admin/CycleControl';
+import PageHelp from '@/components/admin/PageHelp';
 import RowActions from '@/components/admin/RowActions';
 import { STATUS_META, type AppraisalStatus } from '@/lib/status';
 
@@ -41,6 +42,14 @@ export default async function CycleDetail({ params }: { params: { id: string } }
       <p className="text-sm text-slate-500 mb-5">
         {cycle.period_from} → {cycle.period_to} · status: {cycle.status}
       </p>
+      <PageHelp items={[
+        '\u201CLaunch cycle\u201D / \u201CRe-run launch\u201D creates appraisals + personal links for all active staff; re-running only fills gaps (safe after partial launches or roster additions).',
+        '\u201CShare links (WhatsApp)\u201D opens the distribution panel: per-person link with live status, one-tap WhatsApp share with a pre-written message, and \u201Ccopy pending list\u201D chase lists for stragglers.',
+        'Board statuses: Invited (waiting on the employee\u2019s Part A) → Self-submitted (waiting on HOD scoring) → Scored (discussion pending) → Discussed (waiting on employee sign-off) → Concurred / Disagreed (disagreements appear in Review) → Closed.',
+        'Row actions: \u201CUnlock scoring\u201D lets the HOD proceed when an employee cannot complete Part A; \u201CCancel\u201D removes someone from this cycle (reason recorded); PDF appears once an appraisal is closed.',
+        '\u201CClose signed-off\u201D closes every concurred or HR-resolved appraisal in one go.',
+        'Test cycles only: \u201CPurge test cycle\u201D permanently deletes the cycle and all its data (typed confirmation required). \u201CMark as test cycle\u201D converts a normal cycle so it can be purged.'
+      ]} />
       <CycleControl cycleId={cycle.id} status={cycle.status} appraisals={rows.length} isTest={cycle.is_test} label={cycle.label} />
 
       {rows.length > 0 && (

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
+import PageHelp from '@/components/admin/PageHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +27,13 @@ export default async function Roster() {
     <AdminShell active="/admin/roster" adminName={admin.name}>
       <h1 className="text-xl font-bold mb-1">Roster</h1>
       <p className="text-sm text-slate-500 mb-6">
-        {rows.length} active employees · imported from HR xlsx (see ROSTER-CLEANUP-REPORT) · editing arrives in P2.
+        {rows.length} active employees, as provided by HR.
       </p>
+      <PageHelp items={[
+        'Track decides which 4 of the 9 appraisal factors apply: Clinical (teal) or Non-clinical (amber). Spot-check these before launching a real cycle.',
+        'HOD is the default appraiser — at cycle launch each employee\u2019s appraisal is assigned to this person. Every employee must have an HOD or launch will refuse and name the gaps.',
+        'The roster is read-only here for now; corrections (names, tracks, HOD changes) go through HR and are applied by the system administrator. A roster editor and import wizard are on the backlog.'
+      ]} />
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

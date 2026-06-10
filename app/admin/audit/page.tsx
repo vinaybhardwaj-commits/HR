@@ -24,7 +24,11 @@ export default async function Audit({ searchParams }: { searchParams: { action?:
   return (
     <AdminShell active="/admin/audit" adminName={admin.name}>
       <h1 className="text-xl font-bold mb-1">Audit log</h1>
-      <p className="text-sm text-slate-500 mb-4">Last 200 events (filterable).</p>
+      <p className="text-sm text-slate-500 mb-4">
+        The permanent trail of every sensitive action — logins, launches, link views, score submissions,
+        admin overrides, sign-offs, PDF downloads, purges — with actor and time. Showing the last 200;
+        filter by action or appraisal id. Audit entries survive even test-cycle purges.
+      </p>
       <form className="flex flex-wrap gap-2 mb-4">
         <input name="action" defaultValue={action ?? ''} placeholder="Filter by action…"
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm" />

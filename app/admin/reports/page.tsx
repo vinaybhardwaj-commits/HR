@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
+import PageHelp from '@/components/admin/PageHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,14 @@ export default async function Reports({ searchParams }: { searchParams: { cycle?
           <button className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">View</button>
         </form>
       </div>
-      <p className="text-sm text-slate-500 mb-6">{totalScored} appraisals scored in this cycle.</p>
+      <p className="text-sm text-slate-500 mb-4">{totalScored} appraisals scored in this cycle.</p>
+      <PageHelp items={[
+        'Calibration compares scoring patterns across HODs (count, mean/min/max %, band mix). Before sign-off, look for outliers — an HOD whose mean sits far above or below the rest may be scoring leniently or harshly rather than their team genuinely differing.',
+        'Band distribution splits results by track (Clinical / Non-clinical). Bands: >80% Outstanding, >60% Commendable, >40% Adequate, else Inadequate — same thresholds as the legacy paper form.',
+        'Training needs aggregates everything HODs flagged during scoring, with names — the input for the training plan.',
+        'Each section has a CSV download; the bands CSV is the complete per-employee export for offline records.',
+        'The selector defaults to the latest real cycle; test cycles are marked (TEST) and never the default.'
+      ]} />
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-2">

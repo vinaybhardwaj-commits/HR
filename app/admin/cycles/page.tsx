@@ -4,6 +4,7 @@ import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
 import CreateCycleForm from '@/components/admin/CreateCycleForm';
+import PageHelp from '@/components/admin/PageHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,13 @@ export default async function Cycles() {
   return (
     <AdminShell active="/admin/cycles" adminName={admin.name}>
       <h1 className="text-xl font-bold mb-1">Appraisal cycles</h1>
-      <p className="text-sm text-slate-500 mb-6">Create a cycle, then launch it to mint links for all staff.</p>
+      <p className="text-sm text-slate-500 mb-4">Create a cycle, launch it, then share the personal links.</p>
+      <PageHelp items={[
+        'Create a cycle with a label (e.g. \u201CH1 2026\u201D), type and review period. Tick \u201CTest cycle\u201D for rehearsals — test cycles carry a purple TEST badge, stay out of the dashboard and report defaults, and can be purged completely afterwards.',
+        'A cycle is draft until you launch it from its page. Launch creates an appraisal for every active employee and mints one personal link per employee and per HOD. Launch is safe to re-run — it only fills in anything missing.',
+        'Statuses: draft → live (launched, in progress) → closed (sign-offs finalised, PDFs available).',
+        'Open a cycle for everything else: the board, WhatsApp link sharing, closing, and (for test cycles) purge.'
+      ]} />
       <CreateCycleForm />
       <div className="mt-6 space-y-2">
         {cycles.length === 0 && (
