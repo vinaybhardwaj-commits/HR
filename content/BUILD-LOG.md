@@ -129,3 +129,21 @@
   bootstrap is one-time-only and /admin/settings (B8) is not built yet. Dup-email
   409, bcrypt-12, role 'super', audited. Owner runs the curl (same protocol as
   reset-password); account creation is never done by the assistant.
+
+## P9 Live dashboard + portal feedback + versioning — 10 Jun 2026 (V device-test feedback)
+- DASHBOARD = live command centre: per live cycle (incl. TEST, badged) — signed-off
+  progress bar, status funnel chips, "Waiting on employee" + "Waiting on HOD" lists
+  (name → HOD, days waiting, red at 7d/3d), HOD progress table (awaiting self / to
+  score / discussion pending / done, sorted by most-behind), recent-activity feed
+  (humanised audit events) + link to full audit. AutoRefresh component: router.refresh()
+  every 30s with live indicator.
+- Employee submit: proper completion screen (big check, "what happens next" steps,
+  keep-your-link note). /me greeting now full name (split-first-token bug).
+- HOD submit: green acknowledgement panel (name, total, %, band, "discussion releases
+  the assessment"), submit button locks while saving, 409 now returns
+  error=already_submitted + clear message (client shows it plainly and refreshes).
+  Reopened appraisals show amber "editing version N+1, previous on record" banner.
+- Version control (V choice: audit snapshot): HR reopen freezes the complete prior
+  submission (all scores+examples+totals+band+scorer+discussion date) into audit_log
+  as score_version_snapshot v{N} BEFORE clearing. Blocked re-submits logged
+  (score_submit_blocked) — every attempt is on record.

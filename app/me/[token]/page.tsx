@@ -75,7 +75,7 @@ export default async function EmployeePortal({ params }: { params: { token: stri
       <div className="max-w-xl mx-auto p-4 sm:p-6">
         <header className="mb-5">
           <div className="text-lg font-bold">EVEN <span className="font-normal text-slate-500">· Performance Appraisal</span></div>
-          <p className="text-sm text-slate-600 mt-1">Hi {ap.full_name.split(' ')[0]} — {ap.cycle_label}</p>
+          <p className="text-sm text-slate-600 mt-1">Hi {ap.full_name} — {ap.cycle_label}</p>
         </header>
         <Stepper current={step} />
         {step === 1 && <SelfAppraisalForm token={params.token} initial={ap.self_json ?? {}} />}

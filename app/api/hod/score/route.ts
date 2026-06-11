@@ -22,7 +22,13 @@ async function handle(req: NextRequest) {
   const { token, appraisal } = ctx;
 
   if (!['invited', 'self_submitted'].includes(appraisal.status)) {
-    return NextResponse.json({ error: 'scoring is closed for this appraisal' }, { status: 409 });
+    await logAudit({ actorType: 'hod', actorLabel: token.label ?? `hod#${token.holder_id}`,
+      action: 'score_submit_blocked', appraisalId: appraisal.id,
+      meta: { status: appraisal.status, reason: 'already submitted / locked' } });
+    return NextResponse.json({
+      error: 'already_submitted',
+      message: 'Scores for this person are already submitted and locked.'
+    }, { status: 409 });
   }
 
   const db = sql();

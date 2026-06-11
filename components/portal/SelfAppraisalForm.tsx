@@ -52,9 +52,17 @@ export default function SelfAppraisalForm({ token, initial }: { token: string; i
 
   if (submitted) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 mt-4">
-        <h2 className="font-semibold mb-2">Submitted ✅</h2>
-        <p className="text-sm text-slate-600">Your self-appraisal is with your HOD now. You can close this page.</p>
+      <div className="bg-white border border-green-200 rounded-2xl p-8 mt-4 text-center">
+        <div className="mx-auto w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-3xl mb-3">✓</div>
+        <h2 className="text-lg font-bold text-green-800 mb-1">Self-appraisal submitted</h2>
+        <p className="text-sm text-slate-600 mb-4">Thank you — your answers are safely recorded and cannot be lost.</p>
+        <div className="text-left text-sm text-slate-600 bg-slate-50 rounded-xl p-4 space-y-1.5">
+          <p className="font-semibold text-slate-700">What happens next:</p>
+          <p>1. Your HOD reviews your self-appraisal and completes your assessment.</p>
+          <p>2. You will have a face-to-face discussion together.</p>
+          <p>3. After the discussion, open this same link to see your full assessment and sign.</p>
+        </div>
+        <p className="text-xs text-slate-400 mt-4">Keep your personal link — you will need it again for the final step. You can close this page now.</p>
       </div>
     );
   }

@@ -23,13 +23,13 @@ export default async function ScoringPage({ params }: { params: { token: string;
 
   const meta = (await sql()`
     SELECT e.full_name, e.designation, e.sub_department, a.self_json, a.status, a.total_score,
-           a.percent, a.band, a.discussion_date::text, c.label AS cycle_label
+           a.percent, a.band, a.discussion_date::text, a.reopened_count, c.label AS cycle_label
     FROM appraisal a JOIN employee e ON e.id = a.employee_id JOIN cycle c ON c.id = a.cycle_id
     WHERE a.id = ${appraisal.id}`) as {
     full_name: string; designation: string | null; sub_department: string | null;
     self_json: Record<string, unknown> | null; status: string;
     total_score: number | null; percent: string | null; band: string | null;
-    discussion_date: string | null; cycle_label: string;
+    discussion_date: string | null; reopened_count: number; cycle_label: string;
   }[];
   const m = meta[0];
 
@@ -55,6 +55,8 @@ export default async function ScoringPage({ params }: { params: { token: string;
           token={params.token}
           appraisalId={appraisal.id}
           status={m.status}
+          employeeName={m.full_name}
+          reopenedCount={m.reopened_count}
           selfJson={m.self_json}
           factors={factors}
           initialScores={scores}

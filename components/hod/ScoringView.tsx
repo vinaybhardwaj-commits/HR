@@ -14,8 +14,8 @@ const LEVEL_LABEL: Record<number, string> = {
   5: 'Exceptional', 4: 'Exceeds', 3: 'Meets', 2: 'Partially meets', 1: 'Does not meet'
 };
 
-export default function ScoringView({ token, appraisalId, status, selfJson, factors, initialScores, initialTraining, result }: {
-  token: string; appraisalId: string; status: string;
+export default function ScoringView({ token, appraisalId, status, employeeName, reopenedCount, selfJson, factors, initialScores, initialTraining, result }: {
+  token: string; appraisalId: string; status: string; employeeName: string; reopenedCount: number;
   selfJson: Record<string, unknown> | null;
   factors: Factor[];
   initialScores: ScoreRow[];
@@ -34,6 +34,7 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [discussionDate, setDiscussionDate] = useState('');
+  const [justSubmitted, setJustSubmitted] = useState<{ total: number; percent: number; band: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editable = ['invited', 'self_submitted'].includes(status);
@@ -69,10 +70,21 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload(submit))
     });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) { setSaved('idle'); setError((j as { error?: string }).error ?? 'Could not save'); return; }
+    const j = await res.json().catch(() => ({})) as
+      { error?: string; message?: string; total?: number; percent?: number; band?: string };
+    if (!res.ok) {
+      setSaved('idle');
+      setError(j.error === 'already_submitted'
+        ? (j.message ?? 'Already submitted — scores are locked.')
+        : j.error ?? 'Could not save');
+      if (j.error === 'already_submitted') router.refresh();
+      return;
+    }
     setSaved('saved');
-    if (submit) router.refresh();
+    if (submit) {
+      if (typeof j.total === 'number') setJustSubmitted({ total: j.total, percent: j.percent ?? 0, band: j.band ?? '' });
+      router.refresh();
+    }
   }
 
   function queueSave() {
@@ -120,12 +132,37 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
     </div>
   );
 
+  const banners = (
+    <>
+      {justSubmitted && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4">
+          <p className="font-semibold text-green-800">✓ Scores submitted for {employeeName}</p>
+          <p className="text-sm text-green-700 mt-1">
+            Total <span className="font-bold">{justSubmitted.total}</span> · {justSubmitted.percent}% ·{' '}
+            <span className="font-bold">{justSubmitted.band}</span>. Scores are now locked.
+            Next: hold the face-to-face discussion, then record the date in the bar below —
+            that is what releases the assessment to {employeeName}.
+          </p>
+        </div>
+      )}
+      {!justSubmitted && reopenedCount > 0 && editable && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+          <p className="font-semibold text-amber-800">Reopened by HR — you are editing version {reopenedCount + 1}</p>
+          <p className="text-sm text-amber-700 mt-1">
+            The previous submission is preserved on record. Re-score all factors and submit again.
+          </p>
+        </div>
+      )}
+    </>
+  );
+
   const scoring = (
     <div className="space-y-3">
       {factors.map(f => {
         const s = scores[f.code] ?? {};
         const needsEx = s.value ? exampleRequired(s.value) : false;
-        return (
+
+  return (
           <div key={f.code} className={`bg-white border rounded-2xl p-4 ${needsEx && !s.example?.trim() ? 'border-amber-300' : 'border-slate-200'}`}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
@@ -192,6 +229,7 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
 
   return (
     <div>
+      {banners}
       {/* mobile tabs */}
       <div className="flex lg:hidden gap-2 mb-3">
         <button onClick={() => setTab('self')}
@@ -226,7 +264,7 @@ export default function ScoringView({ token, appraisalId, status, selfJson, fact
               <span className="text-xs text-slate-400">{saved === 'saving' ? 'Saving…' : saved === 'saved' ? 'Saved ✓' : ''}</span>
               <button onClick={() => save(false)} className="border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium">Save draft</button>
               <button onClick={() => { if (confirm('Submit scores? You cannot edit after submitting.')) save(true); }}
-                disabled={!canSubmit}
+                disabled={!canSubmit || saved === 'saving'}
                 className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40">
                 Submit scores
               </button>

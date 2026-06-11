@@ -38,6 +38,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       } else if (b.action === 'resolve') {
         await db`UPDATE appraisal SET status = ${to}, hr_notes = ${b.reason!.trim()} WHERE id = ${ap.id}`;
       } else {
+        // VERSION SNAPSHOT (V decision 10 Jun): freeze the full prior submission
+        // into the audit log before anything is cleared, so re-scoring never
+        // destroys history. Readable in /admin/audit (action=score_version_snapshot).
+        const prevScores = await db`
+          SELECT factor_code, value, example_text FROM score WHERE appraisal_id = ${ap.id}`;
+        const prevTotals = (await db`
+          SELECT total_score, percent::text, band, scores_submitted_at::text, scored_by_label,
+                 discussion_date::text, reopened_count
+          FROM appraisal WHERE id = ${ap.id}`) as Record<string, unknown>[];
+        await logAudit({
+          actorType: 'admin', actorLabel: admin.email, action: 'score_version_snapshot',
+          appraisalId: ap.id,
+          meta: { version: Number(prevTotals[0]?.reopened_count ?? 0) + 1,
+                  totals: prevTotals[0] ?? null, scores: prevScores as unknown as Record<string, unknown>[] }
+        });
         await db`UPDATE appraisal SET status = ${to}, reopened_count = reopened_count + 1,
                  total_score = NULL, percent = NULL, band = NULL, scores_submitted_at = NULL,
                  discussion_date = NULL, discussion_marked_at = NULL WHERE id = ${ap.id}`;
