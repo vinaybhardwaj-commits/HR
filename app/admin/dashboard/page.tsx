@@ -200,7 +200,7 @@ export default async function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...hods.entries()].sort((a, b) => (b[1]['self_submitted'] ?? 0) - (a[1]['self_submitted'] ?? 0)).map(([hod, m]) => {
+                  {Array.from(hods.entries()).sort((a, b) => (b[1]['self_submitted'] ?? 0) - (a[1]['self_submitted'] ?? 0)).map(([hod, m]) => {
                     const teamTotal = Object.values(m).reduce((s, n) => s + n, 0);
                     const doneN = (m['discussed'] ?? 0) + (m['concurred'] ?? 0) + (m['disagreed'] ?? 0) + (m['hr_review'] ?? 0) + (m['closed'] ?? 0);
                     return (
