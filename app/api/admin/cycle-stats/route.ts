@@ -31,7 +31,19 @@ export async function GET(req: NextRequest) {
              count(*) FILTER (WHERE last_used_at IS NOT NULL)::int AS used
       FROM token WHERE cycle_id = ${c.id} AND NOT revoked GROUP BY role`) as
       { role: string; total: number; used: number }[];
-    out.push({ ...c, counts, links });
+    const pending_self = (await db`
+      SELECT e.emp_code, e.full_name, ap.full_name AS hod,
+             GREATEST(0, floor(extract(epoch FROM now() - a.created_at) / 86400))::int AS days,
+             (t.last_used_at IS NOT NULL) AS opened_link
+      FROM appraisal a
+      JOIN employee e ON e.id = a.employee_id
+      JOIN appraiser ap ON ap.id = a.appraiser_id
+      LEFT JOIN token t ON t.cycle_id = a.cycle_id AND t.role = 'employee'
+        AND t.holder_type = 'employee' AND t.holder_id = e.id AND NOT t.revoked
+      WHERE a.cycle_id = ${c.id} AND a.status = 'invited'
+      ORDER BY ap.full_name, e.full_name`) as
+      { emp_code: string; full_name: string; hod: string; days: number; opened_link: boolean }[];
+    out.push({ ...c, counts, links, pending_self });
   }
 
   const activity = (await db`
