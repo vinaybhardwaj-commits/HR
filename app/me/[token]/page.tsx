@@ -1,4 +1,5 @@
 import { sql } from '@/lib/db';
+import RefreshOnFocus from '@/components/portal/RefreshOnFocus';
 import { resolvePortalToken } from '@/lib/portal';
 import { cycleFactorsForEmployee } from '@/lib/hod';
 import SelfAppraisalForm from '@/components/portal/SelfAppraisalForm';
@@ -72,6 +73,7 @@ export default async function EmployeePortal({ params }: { params: { token: stri
 
   return (
     <main className="min-h-screen bg-slate-50">
+      <RefreshOnFocus />
       <div className="max-w-xl mx-auto p-4 sm:p-6">
         <header className="mb-5">
           <div className="text-lg font-bold">EVEN <span className="font-normal text-slate-500">· Performance Appraisal</span></div>

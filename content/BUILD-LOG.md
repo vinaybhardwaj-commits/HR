@@ -209,3 +209,13 @@
   status chip "Scored — awaiting 1:1"; HOD command centre "N awaiting 1:1" + drill-down
   "scored — HOD must hold the 1:1 and mark it"; HOD queue group header now says
   "Scored — now hold the 1:1 discussion and mark it held (this releases their result)".
+
+## B10 stale mobile portal views — FIXED 12 Jun 2026
+- V scored + submitted B Ajith Kumar successfully (audit: score_submit 12:54 UTC) but
+  his iPhone then showed a cached queue ("0 of 9") and a blank scoring form — Safari
+  restored stale snapshots instead of re-fetching, making a successful submit look
+  broken. The one stray autosave was correctly 409-blocked; no data issue.
+- FIX: RefreshOnFocus client component on all three portal pages (/hod queue, scoring
+  view, /me) — router.refresh() on visibilitychange→visible, window focus, and
+  pageshow(persisted) bfcache restores. Phones now re-fetch truth whenever the tab
+  wakes.
