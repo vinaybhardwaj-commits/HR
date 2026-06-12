@@ -162,3 +162,13 @@
   5. Calibration early-warning: purple "calibration ⚠" chip when an HOD's mean % is
      >10pp off the cycle mean with n≥3 (tooltip shows both).
 - Click a row → expands to their team with per-person status + waiting days.
+
+## P11 Scoring browser module — 11 Jun 2026 (V request)
+- NEW sidebar module "Scoring" (/admin/scoring): cycle selector → every HOD with their
+  team; per row: status chip, total/%/band once scored, amber "draft · N factors" chip
+  while the HOD is mid-scoring, purple vN chip on reopened appraisals. Click → detail.
+- NEW /admin/appraisals/[id]: full read-only appraisal — Part A (incl. satisfaction
+  answer, marked HR-ONLY), Part B per-factor scores with anchor text + HOD examples
+  (+ draft markers), totals/band/scorer/discussion, training needs, Part D sign-off,
+  HR notes, version indicator. Every view audit-logged (appraisal_viewed).
+- Cycle board employee names now link to the detail page.

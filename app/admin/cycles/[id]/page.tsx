@@ -75,7 +75,9 @@ export default async function CycleDetail({ params }: { params: { id: string } }
                 {rows.map(r => (
                   <tr key={r.id} className="border-b border-slate-100 last:border-0">
                     <td className="px-4 py-2.5 font-mono text-xs">{r.emp_code}</td>
-                    <td className="px-4 py-2.5 font-medium">{r.full_name}</td>
+                    <td className="px-4 py-2.5 font-medium">
+                      <Link href={`/admin/appraisals/${r.id}`} className="hover:text-brand hover:underline">{r.full_name}</Link>
+                    </td>
                     <td className="px-4 py-2.5 text-slate-600">{r.sub_department}</td>
                     <td className="px-4 py-2.5 text-slate-600">{r.hod}</td>
                     <td className="px-4 py-2.5">
