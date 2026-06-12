@@ -1,4 +1,5 @@
 import { redirect, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { getCurrentAdmin } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
