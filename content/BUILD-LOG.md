@@ -202,3 +202,10 @@
 - Red (pending) rows: "Get link" expands inline — Copy link / Copy message / WhatsApp
   share with the standard personal-link message (greeting uses full name). Links
   decrypted server-side only for pending employees, admin-gated page.
+
+## Copy fix: "discussion pending" → "awaiting 1:1" — 12 Jun 2026
+- Field finding (Manjunath/Naveen): HODs read "discussion pending" as a system state,
+  not as THEIR next action — scored appraisals sat unmarked. Renamed everywhere:
+  status chip "Scored — awaiting 1:1"; HOD command centre "N awaiting 1:1" + drill-down
+  "scored — HOD must hold the 1:1 and mark it"; HOD queue group header now says
+  "Scored — now hold the 1:1 discussion and mark it held (this releases their result)".
