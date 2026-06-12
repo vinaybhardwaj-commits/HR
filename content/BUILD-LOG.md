@@ -172,3 +172,11 @@
   (+ draft markers), totals/band/scorer/discussion, training needs, Part D sign-off,
   HR notes, version indicator. Every view audit-logged (appraisal_viewed).
 - Cycle board employee names now link to the detail page.
+
+## P12 Roster name/code editor — 11 Jun 2026
+- Hover any roster name → pencil → inline edit. Employees: full_name + emp_code
+  (dup-code 409, same hospital); appraisers: full_name (dup active-name 409).
+  All renames audited (employee_update notes / appraiser_update rename_to).
+- Trigger: V's Rebecca Gladvin duplicate (code typo) + B7 "Mitsha Signh" — both now
+  fixable in-app. Help notes that e-sign matches the roster spelling, so fix names
+  before the sign-off stage.

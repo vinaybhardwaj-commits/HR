@@ -21,18 +21,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const id = Number(params.id);
   const b = await req.json().catch(() => null) as
-    { default_appraiser_id?: number; track?: string; active?: boolean } | null;
+    { default_appraiser_id?: number; track?: string; active?: boolean; full_name?: string; emp_code?: string } | null;
   if (!b) return NextResponse.json({ error: 'bad request' }, { status: 400 });
   const db = sql();
 
   const cur = (await db`
-    SELECT id, full_name, track, active, default_appraiser_id FROM employee WHERE id = ${id}`) as
-    { id: number; full_name: string; track: string; active: boolean; default_appraiser_id: number }[];
+    SELECT id, full_name, emp_code, track, active, default_appraiser_id FROM employee WHERE id = ${id}`) as
+    { id: number; full_name: string; emp_code: string; track: string; active: boolean; default_appraiser_id: number }[];
   if (!cur[0]) return NextResponse.json({ error: 'employee not found' }, { status: 404 });
 
   const moved: { cycle: string }[] = [];
   const kept: { cycle: string; status: string }[] = [];
   const notes: string[] = [];
+
+  // --- Name / code corrections ---
+  if (b.full_name !== undefined && b.full_name.trim() && b.full_name.trim() !== cur[0].full_name) {
+    const name = b.full_name.trim();
+    await db`UPDATE employee SET full_name = ${name} WHERE id = ${id}`;
+    notes.push(`name "${cur[0].full_name}" → "${name}"`);
+  }
+  if (b.emp_code !== undefined && b.emp_code.trim() && b.emp_code.trim() !== cur[0].emp_code) {
+    const code = b.emp_code.trim();
+    const dup = (await db`
+      SELECT id FROM employee WHERE emp_code = ${code} AND id <> ${id}
+        AND hospital_id = (SELECT hospital_id FROM employee WHERE id = ${id})`) as { id: number }[];
+    if (dup[0]) return NextResponse.json({ error: `code ${code} is already used by another employee` }, { status: 409 });
+    await db`UPDATE employee SET emp_code = ${code} WHERE id = ${id}`;
+    notes.push(`code ${cur[0].emp_code} → ${code}`);
+  }
 
   // --- Track change (guarded) ---
   if (b.track !== undefined && b.track !== cur[0].track) {

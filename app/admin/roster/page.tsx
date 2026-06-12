@@ -5,6 +5,7 @@ import AdminShell from '@/components/admin/AdminShell';
 import PageHelp from '@/components/admin/PageHelp';
 import { AddEmployeeForm, AddAppraiserForm } from '@/components/admin/RosterAddForms';
 import { EmployeeRowControls, AppraiserRowControls } from '@/components/admin/RosterControls';
+import NameCodeEdit from '@/components/admin/NameCodeEdit';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,8 @@ export default async function Roster() {
         'New joiner while a cycle is live: add them, then open the cycle and press “Re-run launch (fill missing)” — that creates their appraisal and personal link without touching anyone else.',
         'Lateral move: change the HOD in the row. If their live-cycle appraisal is not yet scored it moves to the new HOD immediately (the new HOD gets a link if they lack one); if already scored it stays with the scorer for this cycle and only future cycles follow the new mapping. The row tells you which happened.',
         'Track decides which 4 of the 9 factors apply (Clinical / Non-clinical). Changing it is blocked once scoring has started in a live cycle.',
-        'Leavers: Deactivate — they are excluded from future launches; cancel any open appraisal from the cycle board. HODs can only be deactivated once nobody is mapped to them.'
+        'Leavers: Deactivate — they are excluded from future launches; cancel any open appraisal from the cycle board. HODs can only be deactivated once nobody is mapped to them.',
+        'Name or code typos: hover a name and click the pencil to correct it in place (audited). Note: an employee signs their appraisal by typing their name exactly as it appears here — fix spellings before the sign-off stage.'
       ]} />
       <AddEmployeeForm hods={activeHods} />
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
@@ -60,8 +62,10 @@ export default async function Roster() {
           <tbody>
             {rows.map(r => (
               <tr key={r.id} className={`border-b border-slate-100 last:border-0 ${r.active ? '' : 'opacity-45'}`}>
-                <td className="px-4 py-2.5 font-mono text-xs">{r.emp_code}</td>
-                <td className="px-4 py-2.5 font-medium">{r.full_name}{!r.active && <span className="ml-2 text-[10px] text-slate-400">(inactive)</span>}</td>
+                <td className="px-4 py-2.5" colSpan={2}>
+                  <NameCodeEdit role="employee" id={r.id} name={r.full_name} code={r.emp_code} />
+                  {!r.active && <span className="ml-2 text-[10px] text-slate-400">(inactive)</span>}
+                </td>
                 <td className="px-4 py-2.5 text-slate-600">{r.sub_department}</td>
                 <td className="px-4 py-2.5 text-slate-600">{r.designation}</td>
                 <td className="px-4 py-2.5">
@@ -88,7 +92,7 @@ export default async function Roster() {
           <tbody>
             {hods.map(h => (
               <tr key={h.id} className={`border-b border-slate-100 last:border-0 ${h.active ? '' : 'opacity-45'}`}>
-                <td className="px-4 py-2.5 font-medium">{h.full_name}</td>
+                <td className="px-4 py-2.5"><NameCodeEdit role="appraiser" id={h.id} name={h.full_name} /></td>
                 <td className="px-4 py-2.5 text-slate-600">{h.team}</td>
                 <td className="px-4 py-2.5">
                   <AppraiserRowControls id={h.id} name={h.full_name} active={h.active} team={h.team} />
