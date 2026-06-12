@@ -12,7 +12,7 @@ export type HodPanelRow = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  invited: 'awaiting self-appraisal', self_submitted: 'READY TO SCORE', scored: 'discussion pending',
+  invited: 'awaiting self-appraisal', self_submitted: 'READY TO SCORE', scored: 'scored — HOD must hold the 1:1 and mark it',
   discussed: 'awaiting employee sign-off', concurred: 'signed — agree', disagreed: 'signed — disagree',
   hr_review: 'with HR', closed: 'closed', cancelled: 'cancelled'
 };
@@ -63,7 +63,7 @@ export default function HodCommandCentre({ rows, cycleMean }: { rows: HodPanelRo
                 <div className="h-full bg-amber-400" style={{ width: `${r.actionable ? (r.toScore / r.actionable) * 100 : 0}%` }} />
               </div>
               <span className="text-xs text-slate-500 whitespace-nowrap">
-                {r.done} done · {r.discPending} disc · <span className={r.toScore ? 'text-amber-700 font-semibold' : ''}>{r.toScore} to score</span> · {r.awaitingSelf} awaiting self
+                {r.done} done · {r.discPending} awaiting 1:1 · <span className={r.toScore ? 'text-amber-700 font-semibold' : ''}>{r.toScore} to score</span> · {r.awaitingSelf} awaiting self
               </span>
               {r.maxReady >= 3 && <span className="text-[10px] rounded-full px-2 py-0.5 bg-red-50 text-red-700 font-semibold">sitting {r.maxReady}d</span>}
               {r.maxDisc >= 7 && <span className="text-[10px] rounded-full px-2 py-0.5 bg-red-50 text-red-700 font-semibold">discussion {r.maxDisc}d</span>}

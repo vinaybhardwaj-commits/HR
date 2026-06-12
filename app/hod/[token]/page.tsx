@@ -25,7 +25,7 @@ const GROUPS: { title: string; match: (r: Row) => boolean; chip: string; chipCls
   { title: 'Ready to score', match: r => r.status === 'self_submitted' && !r.has_draft, chip: 'ready to score', chipCls: 'bg-amber-50 text-amber-700' },
   { title: 'Draft in progress', match: r => r.status === 'self_submitted' && r.has_draft, chip: 'draft saved', chipCls: 'bg-amber-50 text-amber-700' },
   { title: 'Waiting on self-appraisal', match: r => r.status === 'invited', chip: 'waiting on employee', chipCls: 'bg-slate-100 text-slate-500' },
-  { title: 'Scored — discussion pending', match: r => r.status === 'scored', chip: 'mark discussion', chipCls: 'bg-violet-50 text-violet-700' },
+  { title: 'Scored — now hold the 1:1 discussion and mark it held (this releases their result)', match: r => r.status === 'scored', chip: 'mark discussion held', chipCls: 'bg-violet-50 text-violet-700' },
   { title: 'Done', match: r => ['discussed', 'concurred', 'disagreed', 'hr_review', 'closed'].includes(r.status), chip: 'done', chipCls: 'bg-green-50 text-green-700' }
 ];
 
