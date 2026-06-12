@@ -219,3 +219,17 @@
   view, /me) — router.refresh() on visibilitychange→visible, window focus, and
   pageshow(persisted) bfcache restores. Phones now re-fetch truth whenever the tab
   wakes.
+
+## B11 ROOT CAUSE of all "stale page" reports — FIXED 12 Jun 2026
+- Queue/scoring/portal pages kept serving morning-old data on FRESH requests
+  (x-vercel-cache MISS, age 0) while new endpoints saw current rows. Root cause:
+  Next.js App Router patches global fetch and CACHES the Neon HTTP driver's
+  identical SQL POSTs inside page renders — identical query+params = cached result
+  until the next deploy resets the data cache. Explains V's "nothing changed" after
+  scoring Ajith (DB had it scored at 12:54; queue kept rendering the 12:51-cached
+  read), M Balakrishna's 5× blocked re-submits, and the earlier phone reports
+  (B10's RefreshOnFocus re-fetched… the same cached data).
+- FIX: lib/db.ts — neon(url, { fetchOptions: { cache: 'no-store' } }) opts every
+  query out of Next's data cache globally. Temp /api/admin/diag removed.
+- Lesson for the pattern library: ALWAYS pass cache:'no-store' fetchOptions when
+  using @neondatabase/serverless inside Next.js App Router pages.
