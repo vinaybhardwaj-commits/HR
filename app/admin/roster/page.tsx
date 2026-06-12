@@ -30,10 +30,22 @@ export default async function Roster() {
     SELECT a.id, a.full_name, a.active,
            (SELECT count(*)::int FROM employee e WHERE e.default_appraiser_id = a.id AND e.active) AS team
     FROM appraiser a
-    ORDER BY a.active DESC, a.full_name`) as HodRow[];
+    ORDER BY a.active DESC, team DESC, a.full_name`) as HodRow[];
 
   const activeHods = hods.filter(h => h.active).map(h => ({ id: h.id, full_name: h.full_name }));
   const activeCount = rows.filter(r => r.active).length;
+
+  // Group employees under their HOD; groups ordered like the HOD table (largest team first).
+  const groups = hods
+    .map(h => ({
+      hod: h,
+      members: rows
+        .filter(r => r.default_appraiser_id === h.id)
+        .sort((a, b) => Number(b.active) - Number(a.active) || a.full_name.localeCompare(b.full_name))
+    }))
+    .filter(g => g.members.length > 0);
+  const orphans = rows.filter(r => !hods.some(h => h.id === r.default_appraiser_id));
+  if (orphans.length) groups.push({ hod: { id: -1, full_name: 'No HOD assigned', active: false, team: 0 }, members: orphans });
 
   return (
     <AdminShell active="/admin/roster" adminName={admin.name}>
@@ -60,7 +72,13 @@ export default async function Roster() {
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
+            {groups.map(g => [
+              <tr key={`h${g.hod.id}`} className="bg-slate-50 border-b border-slate-200">
+                <td colSpan={5} className="px-4 py-2 text-xs font-bold text-slate-600 uppercase tracking-wide">
+                  {g.hod.full_name} · {g.members.filter(m => m.active).length} report{g.members.filter(m => m.active).length === 1 ? '' : 's'}
+                </td>
+              </tr>,
+              ...g.members.map(r => (
               <tr key={r.id} className={`border-b border-slate-100 last:border-0 ${r.active ? '' : 'opacity-45'}`}>
                 <td className="px-4 py-2.5" colSpan={2}>
                   <NameCodeEdit role="employee" id={r.id} name={r.full_name} code={r.emp_code} />
@@ -73,7 +91,8 @@ export default async function Roster() {
                     track={r.track} active={r.active} hods={activeHods} />
                 </td>
               </tr>
-            ))}
+              ))
+            ])}
           </tbody>
         </table>
       </div>

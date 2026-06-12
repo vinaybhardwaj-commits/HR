@@ -180,3 +180,9 @@
 - Trigger: V's Rebecca Gladvin duplicate (code typo) + B7 "Mitsha Signh" — both now
   fixable in-app. Help notes that e-sign matches the roster spelling, so fix names
   before the sign-off stage.
+
+## Roster reorganisation — 11 Jun 2026 (V)
+- Employee table now grouped under HOD header rows (HOD name + active report count),
+  groups ordered largest team first; members active-first then A–Z; orphan group
+  "No HOD assigned" appears only if referential gaps exist.
+- Appraisers (HODs) table ordered by team size descending (active first), then name.
