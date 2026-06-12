@@ -147,3 +147,18 @@
   submission (all scores+examples+totals+band+scorer+discussion date) into audit_log
   as score_version_snapshot v{N} BEFORE clearing. Blocked re-submits logged
   (score_submit_blocked) — every attempt is on record.
+
+## P10 Master HOD command centre — 11 Jun 2026 (V request, discussed first)
+- Replaces the dashboard HOD progress table with a per-HOD command centre (all five
+  elements V approved + expandable rows):
+  1. Engagement: per-HOD link usage — "active Xm/h/d ago" (token.last_used_at) or red
+     "never opened link".
+  2. Sitting time: red badges when ready-to-score items sit ≥3d or discussions pend ≥7d
+     (per-item days in the drill-down too).
+  3. Progress bars per HOD (green done / violet discussion-pending / amber to-score),
+     sorted most-behind first (to-score desc, then never-opened, then disc-pending).
+  4. One-tap "WhatsApp chase" per row (pre-written message with their pending count +
+     queue link, derived server-side from secret_enc like the links panel).
+  5. Calibration early-warning: purple "calibration ⚠" chip when an HOD's mean % is
+     >10pp off the cycle mean with n≥3 (tooltip shows both).
+- Click a row → expands to their team with per-person status + waiting days.

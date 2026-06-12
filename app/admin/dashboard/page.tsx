@@ -5,6 +5,9 @@ import { sql } from '@/lib/db';
 import AdminShell from '@/components/admin/AdminShell';
 import PageHelp from '@/components/admin/PageHelp';
 import AutoRefresh from '@/components/admin/AutoRefresh';
+import HodCommandCentre, { type HodPanelRow } from '@/components/admin/HodCommandCentre';
+import { decryptSecret } from '@/lib/crypto';
+import { appBaseUrl } from '@/lib/portal';
 import { STATUS_META, type AppraisalStatus } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
@@ -57,8 +60,13 @@ export default async function Dashboard() {
 
   type CountRow = { cycle_id: number; status: AppraisalStatus; n: number };
   type PendingRow = { cycle_id: number; emp_code: string; full_name: string; hod: string; days: number };
-  type HodRow = { cycle_id: number; hod: string; status: AppraisalStatus; n: number };
-  let counts: CountRow[] = [], waitingEmp: PendingRow[] = [], waitingHod: PendingRow[] = [], hodRows: HodRow[] = [];
+  type HodDetailRow = {
+    cycle_id: number; hod_id: number; hod: string; emp: string; status: AppraisalStatus;
+    percent: string | null; ready_days: number | null; disc_days: number | null;
+  };
+  type HodTokenRow = { cycle_id: number; holder_id: number; last_used_at: string | null; secret_enc: string };
+  let counts: CountRow[] = [], waitingEmp: PendingRow[] = [], waitingHod: PendingRow[] = [];
+  let hodDetail: HodDetailRow[] = [], hodTokens: HodTokenRow[] = [];
 
   if (ids.length) {
     counts = (await db`
@@ -76,11 +84,17 @@ export default async function Dashboard() {
       FROM appraisal a JOIN employee e ON e.id = a.employee_id JOIN appraiser ap ON ap.id = a.appraiser_id
       WHERE a.cycle_id = ANY(${ids}::int[]) AND a.status = 'self_submitted'
       ORDER BY days DESC, e.full_name`) as PendingRow[];
-    hodRows = (await db`
-      SELECT a.cycle_id, ap.full_name AS hod, a.status, count(*)::int AS n
-      FROM appraisal a JOIN appraiser ap ON ap.id = a.appraiser_id
-      WHERE a.cycle_id = ANY(${ids}::int[]) AND a.status <> 'cancelled'
-      GROUP BY a.cycle_id, ap.full_name, a.status`) as HodRow[];
+    hodDetail = (await db`
+      SELECT a.cycle_id, ap.id AS hod_id, ap.full_name AS hod, e.full_name AS emp, a.status, a.percent::text,
+             CASE WHEN a.status = 'self_submitted'
+               THEN GREATEST(0, floor(extract(epoch FROM now() - a.self_submitted_at) / 86400))::int END AS ready_days,
+             CASE WHEN a.status = 'scored'
+               THEN GREATEST(0, floor(extract(epoch FROM now() - a.scores_submitted_at) / 86400))::int END AS disc_days
+      FROM appraisal a JOIN appraiser ap ON ap.id = a.appraiser_id JOIN employee e ON e.id = a.employee_id
+      WHERE a.cycle_id = ANY(${ids}::int[])`) as HodDetailRow[];
+    hodTokens = (await db`
+      SELECT cycle_id, holder_id, last_used_at::text, secret_enc FROM token
+      WHERE cycle_id = ANY(${ids}::int[]) AND role = 'hod' AND NOT revoked AND secret_enc IS NOT NULL`) as HodTokenRow[];
   }
 
   const activity = (await db`
@@ -128,12 +142,33 @@ export default async function Dashboard() {
         const pct = total ? Math.round((done / total) * 100) : 0;
         const wEmp = waitingEmp.filter(x => x.cycle_id === c.id);
         const wHod = waitingHod.filter(x => x.cycle_id === c.id);
-        const hods = new Map<string, Record<string, number>>();
-        for (const r of hodRows.filter(x => x.cycle_id === c.id)) {
-          const m = hods.get(r.hod) ?? {};
-          m[r.status] = r.n;
-          hods.set(r.hod, m);
+        const base = appBaseUrl();
+        const hodMap = new Map<number, HodPanelRow>();
+        for (const r of hodDetail.filter(x => x.cycle_id === c.id)) {
+          let p = hodMap.get(r.hod_id);
+          if (!p) {
+            const tok = hodTokens.find(t => t.cycle_id === c.id && t.holder_id === r.hod_id);
+            p = { hodId: r.hod_id, hod: r.hod, lastUsed: tok?.last_used_at ?? null, chaseUrl: null,
+                  meanPct: null, nScored: 0, team: [] };
+            hodMap.set(r.hod_id, p);
+          }
+          p.team.push({ name: r.emp, status: r.status, readyDays: r.ready_days, discDays: r.disc_days });
         }
+        const cyclePcts: number[] = [];
+        for (const p of Array.from(hodMap.values())) {
+          const pcts = hodDetail.filter(x => x.cycle_id === c.id && x.hod_id === p.hodId && x.percent != null)
+            .map(x => Number(x.percent));
+          p.nScored = pcts.length;
+          p.meanPct = pcts.length ? Math.round(pcts.reduce((a2, b2) => a2 + b2, 0) / pcts.length * 10) / 10 : null;
+          cyclePcts.push(...pcts);
+          const tok = hodTokens.find(t => t.cycle_id === c.id && t.holder_id === p.hodId);
+          if (tok) {
+            const toScore = p.team.filter(t => t.status === 'self_submitted').length;
+            const msg = `Dear ${p.hod},\n\nA gentle reminder from Even HR — ${toScore > 0 ? `${toScore} of your team's appraisals are waiting for your scoring.` : 'your appraisal queue is ready for you.'} Use your personal link below.\n\n${base}/hod/${decryptSecret(tok.secret_enc)}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
+            p.chaseUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+          }
+        }
+        const cycleMean = cyclePcts.length ? Math.round(cyclePcts.reduce((a2, b2) => a2 + b2, 0) / cyclePcts.length * 10) / 10 : null;
         return (
           <section key={c.id} className="bg-white border border-slate-200 rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
@@ -189,34 +224,8 @@ export default async function Dashboard() {
               </div>
             </div>
 
-            <h3 className="text-sm font-semibold mt-5 mb-2">HOD progress</h3>
-            <div className="border border-slate-100 rounded-xl overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-slate-500 border-b border-slate-100">
-                    <th className="px-3 py-2">HOD</th><th className="px-3 py-2">Team</th>
-                    <th className="px-3 py-2">Awaiting self</th><th className="px-3 py-2">To score</th>
-                    <th className="px-3 py-2">Discussion pending</th><th className="px-3 py-2">Done</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from(hods.entries()).sort((a, b) => (b[1]['self_submitted'] ?? 0) - (a[1]['self_submitted'] ?? 0)).map(([hod, m]) => {
-                    const teamTotal = Object.values(m).reduce((s, n) => s + n, 0);
-                    const doneN = (m['discussed'] ?? 0) + (m['concurred'] ?? 0) + (m['disagreed'] ?? 0) + (m['hr_review'] ?? 0) + (m['closed'] ?? 0);
-                    return (
-                      <tr key={hod} className="border-b border-slate-50 last:border-0">
-                        <td className="px-3 py-1.5 font-medium">{hod}</td>
-                        <td className="px-3 py-1.5">{teamTotal}</td>
-                        <td className="px-3 py-1.5 text-slate-500">{m['invited'] ?? 0}</td>
-                        <td className={`px-3 py-1.5 ${m['self_submitted'] ? 'text-amber-700 font-semibold' : 'text-slate-500'}`}>{m['self_submitted'] ?? 0}</td>
-                        <td className={`px-3 py-1.5 ${m['scored'] ? 'text-violet-700 font-semibold' : 'text-slate-500'}`}>{m['scored'] ?? 0}</td>
-                        <td className="px-3 py-1.5 text-green-700">{doneN}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <h3 className="text-sm font-semibold mt-5 mb-2">HOD command centre</h3>
+            <HodCommandCentre rows={Array.from(hodMap.values())} cycleMean={cycleMean} />
           </section>
         );
       })}
