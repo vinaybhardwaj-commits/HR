@@ -195,3 +195,10 @@
   "x/y scored". Colour: red 0% → amber <50% → blue ≥50% → green 100%.
 - Roster now auto-refreshes every 30s while a cycle is live (same AutoRefresh as
   the dashboard).
+
+## Roster click-through — 11 Jun 2026 (V)
+- Green (submitted) rows: "View self-appraisal →" linking to /admin/appraisals/[id]
+  (Part A view; opens audited like all detail views).
+- Red (pending) rows: "Get link" expands inline — Copy link / Copy message / WhatsApp
+  share with the standard personal-link message (greeting uses full name). Links
+  decrypted server-side only for pending employees, admin-gated page.

@@ -7,6 +7,9 @@ import { AddEmployeeForm, AddAppraiserForm } from '@/components/admin/RosterAddF
 import { EmployeeRowControls, AppraiserRowControls } from '@/components/admin/RosterControls';
 import NameCodeEdit from '@/components/admin/NameCodeEdit';
 import AutoRefresh from '@/components/admin/AutoRefresh';
+import RosterEmpAction from '@/components/admin/RosterEmpAction';
+import { decryptSecret } from '@/lib/crypto';
+import { appBaseUrl } from '@/lib/portal';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,11 +34,26 @@ export default async function Roster() {
   const liveCycle = ((await sql()`
     SELECT id, label FROM cycle WHERE status = 'live' ORDER BY is_test ASC, id DESC LIMIT 1`) as
     { id: number; label: string }[])[0] ?? null;
-  type ApStatus = { employee_id: number; appraiser_id: number; status: string };
+  type ApStatus = { id: string; employee_id: number; appraiser_id: number; status: string };
   const apStatuses = liveCycle
-    ? (await sql()`SELECT employee_id, appraiser_id, status FROM appraisal WHERE cycle_id = ${liveCycle.id}`) as ApStatus[]
+    ? (await sql()`SELECT id, employee_id, appraiser_id, status FROM appraisal WHERE cycle_id = ${liveCycle.id}`) as ApStatus[]
     : [];
   const statusByEmp = new Map(apStatuses.map(a => [a.employee_id, a.status]));
+  const apIdByEmp = new Map(apStatuses.map(a => [a.employee_id, a.id]));
+
+  // Personal links for everyone still pending (decrypted server-side, admin-only page).
+  const pendingIds = apStatuses.filter(a => a.status === 'invited').map(a => a.employee_id);
+  const urlByEmp = new Map<number, string>();
+  if (liveCycle && pendingIds.length) {
+    const toks = (await sql()`
+      SELECT holder_id, secret_enc FROM token
+      WHERE cycle_id = ${liveCycle.id} AND role = 'employee' AND NOT revoked AND secret_enc IS NOT NULL
+        AND holder_id = ANY(${pendingIds}::int[])`) as { holder_id: number; secret_enc: string }[];
+    const base = appBaseUrl();
+    for (const t of toks) urlByEmp.set(t.holder_id, `${base}/me/${decryptSecret(t.secret_enc)}`);
+  }
+  const waMsg = (name: string, url: string) =>
+    `Dear ${name},\n\nAs part of the Even performance appraisal, please complete your self-appraisal using your personal link below. It takes about 10 minutes and works on your phone.\n\n${url}\n\nPlease do not forward this link — it is personal to you.\n\n— HR, Even Healthcare`;
   const SCORED = new Set(['scored', 'discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
   const ringByHod = new Map<number, { scored: number; total: number }>();
   for (const a of apStatuses) {
@@ -114,6 +132,15 @@ export default async function Roster() {
                   })()}
                   <NameCodeEdit role="employee" id={r.id} name={r.full_name} code={r.emp_code} />
                   {!r.active && <span className="ml-2 text-[10px] text-slate-400">(inactive)</span>}
+                  {liveCycle && r.active && (() => {
+                    const st = statusByEmp.get(r.id);
+                    if (!st || st === 'cancelled') return null;
+                    if (st === 'invited') {
+                      const url = urlByEmp.get(r.id);
+                      return url ? <RosterEmpAction state="pending" url={url} message={waMsg(r.full_name, url)} /> : null;
+                    }
+                    return <RosterEmpAction state="submitted" appraisalId={apIdByEmp.get(r.id)} />;
+                  })()}
                 </td>
                 <td className="px-4 py-2.5 text-slate-600">{r.sub_department}</td>
                 <td className="px-4 py-2.5 text-slate-600">{r.designation}</td>
