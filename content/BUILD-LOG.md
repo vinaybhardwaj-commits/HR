@@ -186,3 +186,12 @@
   groups ordered largest team first; members active-first then A–Z; orphan group
   "No HOD assigned" appears only if referential gaps exist.
 - Appraisers (HODs) table ordered by team size descending (active first), then name.
+
+## Roster live indicators — 11 Jun 2026 (V)
+- Employee rows: live dot for the current cycle — green = self-appraisal submitted
+  (tooltip shows exact status), red = pending, grey = not in the cycle. Legend in the
+  header names the cycle; prefers the latest REAL live cycle over a live test one.
+- HOD rows: SVG completion ring (% of actionable appraisals scored-or-beyond) +
+  "x/y scored". Colour: red 0% → amber <50% → blue ≥50% → green 100%.
+- Roster now auto-refreshes every 30s while a cycle is live (same AutoRefresh as
+  the dashboard).

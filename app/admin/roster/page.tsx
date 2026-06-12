@@ -6,6 +6,7 @@ import PageHelp from '@/components/admin/PageHelp';
 import { AddEmployeeForm, AddAppraiserForm } from '@/components/admin/RosterAddForms';
 import { EmployeeRowControls, AppraiserRowControls } from '@/components/admin/RosterControls';
 import NameCodeEdit from '@/components/admin/NameCodeEdit';
+import AutoRefresh from '@/components/admin/AutoRefresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,25 @@ export default async function Roster() {
     FROM employee e
     LEFT JOIN appraiser a ON a.id = e.default_appraiser_id
     ORDER BY e.active DESC, e.emp_code`) as Row[];
+
+  // Live cycle for the indicators (prefer the latest real cycle, else latest live test).
+  const liveCycle = ((await sql()`
+    SELECT id, label FROM cycle WHERE status = 'live' ORDER BY is_test ASC, id DESC LIMIT 1`) as
+    { id: number; label: string }[])[0] ?? null;
+  type ApStatus = { employee_id: number; appraiser_id: number; status: string };
+  const apStatuses = liveCycle
+    ? (await sql()`SELECT employee_id, appraiser_id, status FROM appraisal WHERE cycle_id = ${liveCycle.id}`) as ApStatus[]
+    : [];
+  const statusByEmp = new Map(apStatuses.map(a => [a.employee_id, a.status]));
+  const SCORED = new Set(['scored', 'discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
+  const ringByHod = new Map<number, { scored: number; total: number }>();
+  for (const a of apStatuses) {
+    if (a.status === 'cancelled') continue;
+    const r = ringByHod.get(a.appraiser_id) ?? { scored: 0, total: 0 };
+    r.total += 1;
+    if (SCORED.has(a.status)) r.scored += 1;
+    ringByHod.set(a.appraiser_id, r);
+  }
 
   const hods = (await sql()`
     SELECT a.id, a.full_name, a.active,
@@ -49,9 +69,13 @@ export default async function Roster() {
 
   return (
     <AdminShell active="/admin/roster" adminName={admin.name}>
-      <h1 className="text-xl font-bold mb-1">Roster</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+        <h1 className="text-xl font-bold">Roster</h1>
+        {liveCycle && <AutoRefresh seconds={30} />}
+      </div>
       <p className="text-sm text-slate-500 mb-4">
         {activeCount} active employees · {activeHods.length} active HODs.
+        {liveCycle && <span className="ml-2"><span className="inline-block w-2 h-2 rounded-full bg-green-500 align-middle" /> self-appraisal in · <span className="inline-block w-2 h-2 rounded-full bg-red-500 align-middle" /> pending — {liveCycle.label}</span>}
       </p>
       <PageHelp items={[
         'Add employees and HODs here; everything saves instantly and is audit-logged.',
@@ -81,6 +105,13 @@ export default async function Roster() {
               ...g.members.map(r => (
               <tr key={r.id} className={`border-b border-slate-100 last:border-0 ${r.active ? '' : 'opacity-45'}`}>
                 <td className="px-4 py-2.5" colSpan={2}>
+                  {liveCycle && r.active && (() => {
+                    const st = statusByEmp.get(r.id);
+                    if (!st || st === 'cancelled') return <span className="inline-block w-2 h-2 rounded-full bg-slate-200 mr-2 align-middle" title="Not in the live cycle" />;
+                    return st === 'invited'
+                      ? <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-2 align-middle" title="Self-appraisal pending" />
+                      : <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 align-middle" title={`Self-appraisal submitted (${st})`} />;
+                  })()}
                   <NameCodeEdit role="employee" id={r.id} name={r.full_name} code={r.emp_code} />
                   {!r.active && <span className="ml-2 text-[10px] text-slate-400">(inactive)</span>}
                 </td>
@@ -105,6 +136,7 @@ export default async function Roster() {
             <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Team size</th>
+              {liveCycle && <th className="px-4 py-3">Scoring progress</th>}
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
@@ -113,6 +145,28 @@ export default async function Roster() {
               <tr key={h.id} className={`border-b border-slate-100 last:border-0 ${h.active ? '' : 'opacity-45'}`}>
                 <td className="px-4 py-2.5"><NameCodeEdit role="appraiser" id={h.id} name={h.full_name} /></td>
                 <td className="px-4 py-2.5 text-slate-600">{h.team}</td>
+                {liveCycle && (
+                  <td className="px-4 py-1.5">
+                    {(() => {
+                      const r = ringByHod.get(h.id);
+                      if (!r || r.total === 0) return <span className="text-xs text-slate-300">—</span>;
+                      const pct = (r.scored / r.total) * 100;
+                      const rad = 14, circ = 2 * Math.PI * rad;
+                      const colour = pct >= 100 ? '#16a34a' : pct >= 50 ? '#0ea5e9' : pct > 0 ? '#f59e0b' : '#ef4444';
+                      return (
+                        <span className="inline-flex items-center gap-2">
+                          <svg width="36" height="36" viewBox="0 0 36 36" role="img" aria-label={`${Math.round(pct)}% scored`}>
+                            <circle cx="18" cy="18" r={rad} fill="none" stroke="#e2e8f0" strokeWidth="4" />
+                            <circle cx="18" cy="18" r={rad} fill="none" stroke={colour} strokeWidth="4"
+                              strokeDasharray={`${(circ * pct) / 100} ${circ}`} strokeLinecap="round" transform="rotate(-90 18 18)" />
+                            <text x="18" y="21.5" textAnchor="middle" fontSize="9" fontWeight="700" fill="#334155">{Math.round(pct)}</text>
+                          </svg>
+                          <span className="text-xs text-slate-500">{r.scored}/{r.total} scored</span>
+                        </span>
+                      );
+                    })()}
+                  </td>
+                )}
                 <td className="px-4 py-2.5">
                   <AppraiserRowControls id={h.id} name={h.full_name} active={h.active} team={h.team} />
                 </td>
