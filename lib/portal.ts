@@ -19,5 +19,5 @@ export async function resolvePortalToken(secret: string): Promise<TokenRow | nul
 }
 
 export function appBaseUrl(): string {
-  return process.env.APP_BASE_URL ?? 'https://even-appraise.vercel.app';
+  return process.env.APP_BASE_URL ?? 'https://appraise.evenos.app';
 }
