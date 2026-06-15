@@ -134,6 +134,15 @@ export default function ScoringView({ token, appraisalId, status, employeeName, 
 
   const banners = (
     <>
+      {status === 'invited' && !justSubmitted && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+          <p className="font-semibold text-amber-800">No self-appraisal submitted</p>
+          <p className="text-sm text-amber-700 mt-1">
+            {employeeName} has not filled a self-appraisal. As the appraiser you can score directly —
+            when you submit, it is recorded as scored without a self-appraisal (logged on the record).
+          </p>
+        </div>
+      )}
       {justSubmitted && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4">
           <p className="font-semibold text-green-800">✓ Scores submitted for {employeeName}</p>
@@ -263,7 +272,7 @@ export default function ScoringView({ token, appraisalId, status, employeeName, 
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">{saved === 'saving' ? 'Saving…' : saved === 'saved' ? 'Saved ✓' : ''}</span>
               <button onClick={() => save(false)} className="border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium">Save draft</button>
-              <button onClick={() => { if (confirm('Submit scores? You cannot edit after submitting.')) save(true); }}
+              <button onClick={() => { const msg = status === 'invited' ? `${employeeName} has not submitted a self-appraisal. Submit your scores directly? You cannot edit after submitting.` : 'Submit scores? You cannot edit after submitting.'; if (confirm(msg)) save(true); }}
                 disabled={!canSubmit || saved === 'saving'}
                 className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40">
                 Submit scores

@@ -58,10 +58,16 @@ async function handle(req: NextRequest) {
 
   // SUBMIT: gate self-appraisal prerequisite (unless HR override)
   if (appraisal.status === 'invited') {
+    // HOD self-override (V decision 15 Jun 2026): the appraiser may score without a
+    // self-appraisal. Submitting on an 'invited' appraisal records the override and
+    // proceeds. (HR's admin override_self also still works and pre-sets the flag.)
     const ov = (await db`SELECT self_overridden FROM appraisal WHERE id = ${appraisal.id}`) as
       { self_overridden: boolean }[];
     if (!ov[0]?.self_overridden) {
-      return NextResponse.json({ error: 'waiting on self-appraisal (HR can override)' }, { status: 409 });
+      await db`UPDATE appraisal SET self_overridden = true WHERE id = ${appraisal.id}`;
+      await logAudit({ actorType: 'hod', actorLabel: token.label ?? `hod#${token.holder_id}`,
+        action: 'hod_self_override', appraisalId: appraisal.id,
+        meta: { reason: 'HOD scored without a self-appraisal' } });
     }
   }
   const saved = (await db`SELECT factor_code, value, example_text FROM score

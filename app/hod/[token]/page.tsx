@@ -25,7 +25,7 @@ type Row = {
 const GROUPS: { title: string; match: (r: Row) => boolean; chip: string; chipCls: string }[] = [
   { title: 'Ready to score', match: r => r.status === 'self_submitted' && !r.has_draft, chip: 'ready to score', chipCls: 'bg-amber-50 text-amber-700' },
   { title: 'Draft in progress', match: r => r.status === 'self_submitted' && r.has_draft, chip: 'draft saved', chipCls: 'bg-amber-50 text-amber-700' },
-  { title: 'Waiting on self-appraisal', match: r => r.status === 'invited', chip: 'waiting on employee', chipCls: 'bg-slate-100 text-slate-500' },
+  { title: 'No self-appraisal yet — you can score directly', match: r => r.status === 'invited', chip: 'score now', chipCls: 'bg-amber-50 text-amber-700' },
   { title: 'Scored — now hold the 1:1 discussion and mark it held (this releases their result)', match: r => r.status === 'scored', chip: 'mark discussion held', chipCls: 'bg-violet-50 text-violet-700' },
   { title: 'Done', match: r => ['discussed', 'concurred', 'disagreed', 'hr_review', 'closed'].includes(r.status), chip: 'done', chipCls: 'bg-green-50 text-green-700' }
 ];
@@ -76,7 +76,7 @@ export default async function HodQueue({ params }: { params: { token: string } }
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{g.title} · {items.length}</h2>
               <div className="space-y-2">
                 {items.map(r => {
-                  const actionable = r.status === 'self_submitted' || r.status === 'scored';
+                  const actionable = ['invited', 'self_submitted', 'scored'].includes(r.status);
                   const inner = (
                     <div className={`flex items-center justify-between bg-white border rounded-2xl p-4
                       ${actionable ? 'border-slate-200 hover:border-brand' : 'border-slate-100 opacity-80'}`}>
@@ -92,9 +92,7 @@ export default async function HodQueue({ params }: { params: { token: string } }
                       </div>
                     </div>
                   );
-                  return r.status === 'invited'
-                    ? <div key={r.id}>{inner}</div>
-                    : <Link key={r.id} href={`/hod/${params.token}/a/${r.id}`} className="block">{inner}</Link>;
+                  return <Link key={r.id} href={`/hod/${params.token}/a/${r.id}`} className="block">{inner}</Link>;
                 })}
               </div>
             </section>

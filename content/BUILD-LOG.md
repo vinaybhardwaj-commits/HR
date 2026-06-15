@@ -313,3 +313,17 @@
   the portal. If dissent needs capturing, raise with manager/HR; an HR-side "record
   exception" lever can be added later if wanted.
 - Rollback anchor before this change: 461c05a.
+
+## HOD self-override: score without a self-appraisal — 15 Jun 2026 (V request)
+- Need: HODs (e.g. Chandrika's newly-added doctors) should be able to score appraisees
+  who will never submit a self-appraisal, without waiting on HR's "Unlock scoring".
+- The plumbing already existed (state machine allows score_submit from 'invited' when
+  self_overridden; score route accepts drafts/submit for invited). Gaps closed:
+  1) HOD queue: 'invited' rows are now openable (were unclickable); group reframed to
+     "No self-appraisal yet — you can score directly" with a "score now" chip.
+  2) score route: submitting an 'invited' appraisal now SETS self_overridden = true and
+     logs `hod_self_override` (actor hod), instead of 409-blocking. HR's admin
+     override_self still works and pre-sets the flag.
+  3) ScoringView: amber banner on 'invited' ("No self-appraisal submitted … you can score
+     directly … logged on the record"); submit confirm spells out there's no self-appraisal.
+- Display/links/workflow otherwise unchanged. No migration.
