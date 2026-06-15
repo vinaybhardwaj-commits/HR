@@ -9,7 +9,7 @@ const SIGNOFF: Record<string, string> = {
   agree: 'Agree', agree_remarks: 'Agree with remarks', disagree: 'Disagree'
 };
 const SCORED_OR_BEYOND = new Set(['scored', 'discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
-const SIGNED = new Set(['concurred', 'disagreed', 'hr_review', 'closed']);
+const SIGNED = new Set(['discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
 
 export async function GET(req: NextRequest) {
   const admin = await getCurrentAdmin();
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       scored: cnt(s => SCORED_OR_BEYOND.has(s)),
       signed: cnt(s => SIGNED.has(s)),
       closed: cnt(s => s === 'closed'),
-      pending_signoff: cnt(s => s === 'scored' || s === 'discussed'),
+      pending_signoff: cnt(s => s === 'scored'),
       bands: { Outstanding: bandCount('Outstanding'), Commendable: bandCount('Commendable'),
         Adequate: bandCount('Adequate'), Inadequate: bandCount('Inadequate') },
     },
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
       total_score: r.total_score as number | null, percent: r.percent as number | null,
       band: r.band as string | null, status: r.status as string,
       discussion_date: r.discussion_date as string | null,
-      signoff: r.signoff ? (SIGNOFF[r.signoff as string] ?? (r.signoff as string)) : null,
+      signoff: r.signoff ? (SIGNOFF[r.signoff as string] ?? (r.signoff as string)) : (['discussed','closed'].includes(r.status as string) ? 'Accepted at 1:1' : null),
       signed_name: r.signed_name as string | null, signed_at: r.signed_at as string | null,
     })),
     calibration: calibration.map(c => ({

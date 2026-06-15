@@ -285,3 +285,31 @@
   appraisal PDFs ZIP), all driven by the cycle selector.
 - TIMEOUT NOTE: pdf-pack renders ~74 PDFs (~6 queries each) in one request; pinned to
   sin1, maxDuration 300. If a large cycle ever times out, batch the per-PDF queries.
+
+## POLICY CHANGE: 1:1 discussion = acceptance; employee sign-off removed — 15 Jun 2026 (V decision)
+- V: "our 1:1 discussions are a tacit admission that the employee has accepted the
+  appraisal." Employees weren't returning to their links to sign off (Part D), so the
+  separate e-sign step is removed. Marking the discussion held now finalises acceptance.
+- `discussed` is now the accepted / ready-to-close state:
+  - lib/state.ts: close.from now includes 'discussed'. close route closes
+    discussed + (legacy) concurred + hr_review.
+  - lib/status.ts: 'discussed' label → "Discussed — accepted" (green).
+  - Employee /me: Part D sign-off form REMOVED. After the 1:1 the employee sees a
+    read-only "Discussed & accepted" view (assessment + acceptance note). Stepper is
+    now 3 steps (Self-appraisal → With your HOD → Discussion & acceptance).
+  - HOD ScoringView + HR-override button copy: "recorded as discussed & accepted".
+  - Dashboard DONE set + HodCommandCentre treat discussed as done; links panel no
+    longer flags discussed employees as pending.
+  - PDF Part D → "Discussion & acceptance"; no-concurrence rows print "Accepted via
+    the 1:1 discussion held on <date>… constitutes the employee's acknowledgement";
+    appraisee signature box shows "Accepted at 1:1 discussion (<date>)".
+  - Reports: workbook/summary-pdf/pdf-pack now count & include 'discussed' as accepted
+    (ZIP packs discussed rows; "awaiting" = scored only).
+- LEGACY PRESERVED: rows already concurred/disagreed/hr_review keep their recorded
+  e-sign and still render/close correctly. /api/me/concur left in place but dormant
+  (no UI routes to it). No DB migration; no data backfill needed — existing 'discussed'
+  rows are now simply treated as accepted.
+- TRADE-OFF (flagged to V): employees can no longer formally register a 'disagree' via
+  the portal. If dissent needs capturing, raise with manager/HR; an HR-side "record
+  exception" lever can be added later if wanted.
+- Rollback anchor before this change: 461c05a.

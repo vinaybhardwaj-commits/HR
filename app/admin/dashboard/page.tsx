@@ -12,7 +12,7 @@ import { STATUS_META, type AppraisalStatus } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
 
-const DONE = new Set(['concurred', 'disagreed', 'hr_review', 'closed']);
+const DONE = new Set(['discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
 const ACTION_LABEL: Record<string, string> = {
   self_submit: 'submitted their self-appraisal',
   score_submit: 'scores submitted',

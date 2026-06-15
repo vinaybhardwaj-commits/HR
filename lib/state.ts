@@ -15,7 +15,7 @@ const TRANSITIONS: Record<Action, { from: AppraisalStatus[]; to: AppraisalStatus
   concur_remarks:  { from: ['discussed'], to: 'concurred' },
   concur_disagree: { from: ['discussed'], to: 'disagreed' },
   hr_resolve:      { from: ['disagreed'], to: 'hr_review' },
-  close:           { from: ['concurred', 'hr_review'], to: 'closed' },
+  close:           { from: ['discussed', 'concurred', 'hr_review'], to: 'closed' },
   cancel:          { from: ['invited','self_submitted','scored','discussed','concurred','disagreed','hr_review'], to: 'cancelled' },
   reopen:          { from: ['scored','discussed','concurred','disagreed','hr_review'], to: 'self_submitted' }
 };

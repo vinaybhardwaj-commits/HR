@@ -5,7 +5,7 @@ import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
-/** Close all eligible (concurred / hr_review) appraisals in a cycle. */
+/** Close all eligible appraisals in a cycle: discussed (=accepted via 1:1), plus legacy concurred / hr_review. */
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (!b?.cycleId) return NextResponse.json({ error: 'cycleId required' }, { status: 400 });
   const closed = (await sql()`
     UPDATE appraisal SET status = 'closed', closed_at = now(), pdf_generated_at = now()
-    WHERE cycle_id = ${b.cycleId} AND status IN ('concurred', 'hr_review')
+    WHERE cycle_id = ${b.cycleId} AND status IN ('discussed', 'concurred', 'hr_review')
     RETURNING id`) as { id: string }[];
   await logAudit({ actorType: 'admin', actorLabel: admin.email, action: 'bulk_close',
     meta: { cycleId: b.cycleId, n: closed.length } });

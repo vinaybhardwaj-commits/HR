@@ -10,7 +10,7 @@ export const maxDuration = 30;
 
 const BAND_ORDER = ['Outstanding', 'Commendable', 'Adequate', 'Inadequate'];
 const SCORED_OR_BEYOND = new Set(['scored', 'discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
-const SIGNED = new Set(['concurred', 'disagreed', 'hr_review', 'closed']);
+const SIGNED = new Set(['discussed', 'concurred', 'disagreed', 'hr_review', 'closed']);
 
 const st = StyleSheet.create({
   page: { padding: 40, fontSize: 9.5, fontFamily: 'Helvetica', color: '#1e293b' },
@@ -77,9 +77,9 @@ export async function GET(req: NextRequest) {
   const stats: [string, number][] = [
     ['In cycle', cnt(s => s !== 'cancelled')],
     ['Scored', cnt(s => SCORED_OR_BEYOND.has(s))],
-    ['Signed off', cnt(s => SIGNED.has(s))],
+    ['Accepted', cnt(s => SIGNED.has(s))],
     ['Closed', cnt(s => s === 'closed')],
-    ['Awaiting 1:1 / sign-off', cnt(s => s === 'scored' || s === 'discussed')],
+    ['Awaiting 1:1', cnt(s => s === 'scored')],
   ];
 
   const doc = (

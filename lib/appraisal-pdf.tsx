@@ -107,7 +107,7 @@ export async function renderAppraisalPdf(appraisalId: string): Promise<RenderedA
           </>
         )}
 
-        <Text style={st.h2}>Part D — Discussion & concurrence</Text>
+        <Text style={st.h2}>Part D — Discussion & acceptance</Text>
         <Text style={st.para}>Appraisal discussion held on: {String(a.disc_date ?? '—')}</Text>
         {co ? (
           <>
@@ -115,11 +115,11 @@ export async function renderAppraisalPdf(appraisalId: string): Promise<RenderedA
             {co.remarks ? <Text style={st.para}><Text style={st.label}>Remarks: </Text>{co.remarks}</Text> : null}
             {a.hr_notes ? <Text style={st.para}><Text style={st.label}>HR resolution: </Text>{String(a.hr_notes)}</Text> : null}
           </>
-        ) : <Text style={st.para}>Awaiting employee sign-off.</Text>}
+        ) : <Text style={st.para}>{a.disc_date ? `Accepted via the 1:1 discussion held on ${String(a.disc_date)}. Per Even policy, the appraisal discussion constitutes the employee\u2019s acknowledgement of this appraisal.` : 'Awaiting appraisal discussion.'}</Text>}
 
         <View style={st.sig}>
           <View style={st.sigBox}>
-            <Text>APPRAISEE: {co ? `${co.signed_name} (e-signed ${co.signed_at?.slice(0, 16)})` : '—'}</Text>
+            <Text>APPRAISEE: {co ? `${co.signed_name} (e-signed ${co.signed_at?.slice(0, 16)})` : (a.disc_date ? `Accepted at 1:1 discussion (${String(a.disc_date)})` : '—')}</Text>
           </View>
           <View style={st.sigBox}>
             <Text>APPRAISER: {String(a.scored_by_label ?? a.hod_name)} (submitted {String(a.scores_submitted_at ?? '').slice(0, 16) || '—'})</Text>

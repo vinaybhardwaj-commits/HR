@@ -48,7 +48,7 @@ export default async function EmployeePortal({ params }: { params: { token: stri
   const reviewable = ['discussed', 'concurred', 'disagreed', 'hr_review', 'closed'].includes(ap.status);
   const step = ap.status === 'invited' ? 1
     : ['self_submitted', 'scored'].includes(ap.status) ? 2
-    : ap.status === 'discussed' ? 3 : 4;
+    : 3;
 
   // Scores are loaded ONLY once the discussion has been held (never earlier).
   let scores: { code: string; label: string; value: number; level: string; example: string | null }[] = [];
@@ -86,7 +86,7 @@ export default async function EmployeePortal({ params }: { params: { token: stri
             <h2 className="font-semibold mb-2">Thank you — your self-appraisal is in ✅</h2>
             <p className="text-sm text-slate-600">
               It is now with <span className="font-medium">{ap.hod}</span>. After your appraisal
-              discussion, you will be able to review everything here and sign off.
+              discussion, you will be able to review everything here.
             </p>
           </div>
         )}

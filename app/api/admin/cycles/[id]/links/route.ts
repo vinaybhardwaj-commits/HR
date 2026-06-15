@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       name: t.full_name,
       code: t.emp_code,
       status: t.status ?? 'no appraisal',
-      pending: t.status === 'invited' || t.status === 'discussed',
+      pending: t.status === 'invited',
       url: `${base}/me/${decryptSecret(t.secret_enc)}`
     }))
   ];

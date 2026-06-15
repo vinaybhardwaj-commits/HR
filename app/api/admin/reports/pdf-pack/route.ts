@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // ~74 PDFs per cycle; pinned to sin1 next to Neon
 
 // "Signed-off" = the appraisal is finished from the employee's side. These are the
-// records worth archiving. Scored-but-unsigned (scored/discussed) are excluded.
-const SIGNED = ['concurred', 'disagreed', 'hr_review', 'closed'];
+// records worth archiving. 'discussed' = accepted via the 1:1 (policy 15 Jun 2026).
+const SIGNED = ['discussed', 'concurred', 'disagreed', 'hr_review', 'closed'];
 const MAX = 300;
 
 export async function GET(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   if (ids.length === 0) {
     return NextResponse.json(
-      { error: 'No signed-off appraisals to pack yet. PDFs are included once the employee has signed (concurred/disagreed) or the appraisal is closed.' },
+      { error: 'No accepted appraisals to pack yet. PDFs are included once the 1:1 discussion has been held (status discussed/accepted) or later.' },
       { status: 400 }
     );
   }

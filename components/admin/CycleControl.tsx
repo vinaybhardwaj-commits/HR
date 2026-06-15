@@ -34,7 +34,7 @@ export default function CycleControl({ cycleId, status, appraisals, isTest, labe
   }
 
   async function closeAll() {
-    if (!confirm('Close all signed-off (concurred / HR-resolved) appraisals in this cycle? PDFs become available after close.')) return;
+    if (!confirm('Close all accepted appraisals (discussed via 1:1, plus legacy concurred / HR-resolved) in this cycle? PDFs become available after close.')) return;
     setBusy(true); setError(null);
     const res = await fetch('/api/admin/appraisals/close', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

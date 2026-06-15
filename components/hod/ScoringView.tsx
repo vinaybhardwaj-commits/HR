@@ -141,7 +141,7 @@ export default function ScoringView({ token, appraisalId, status, employeeName, 
             Total <span className="font-bold">{justSubmitted.total}</span> · {justSubmitted.percent}% ·{' '}
             <span className="font-bold">{justSubmitted.band}</span>. Scores are now locked.
             Next: hold the face-to-face discussion, then record the date in the bar below —
-            that is what releases the assessment to {employeeName}.
+            that records the discussion and completes the appraisal (the employee accepts it via the discussion).
           </p>
         </div>
       )}
@@ -290,7 +290,7 @@ export default function ScoringView({ token, appraisalId, status, employeeName, 
             <span className="font-bold">{result.total}</span> · <span className="font-bold">{result.percent}%</span>
             <span className="ml-2 text-xs font-bold rounded-full px-2.5 py-1 bg-brand-soft text-brand uppercase">{result.band}</span>
             <span className="text-xs text-slate-500 ml-2">
-              Discussion held{result.discussionDate ? ` on ${result.discussionDate}` : ''} — awaiting employee sign-off.
+              Discussion held{result.discussionDate ? ` on ${result.discussionDate}` : ''} — recorded as discussed & accepted.
             </span>
           </div>
         )}

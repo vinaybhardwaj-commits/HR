@@ -1,4 +1,4 @@
-const STEPS = ['Self-appraisal', 'With your HOD', 'Discussion', 'Sign-off'];
+const STEPS = ['Self-appraisal', 'With your HOD', 'Discussion & acceptance'];
 
 export default function Stepper({ current }: { current: number }) {
   return (
@@ -14,7 +14,7 @@ export default function Stepper({ current }: { current: number }) {
               {state === 'done' ? '✓' : n}
             </span>
             <span className={`hidden sm:inline ${state === 'now' ? 'font-semibold' : 'text-slate-500'}`}>{s}</span>
-            {n < 4 && <span className="flex-1 h-px bg-slate-200 mx-1" />}
+            {n < STEPS.length && <span className="flex-1 h-px bg-slate-200 mx-1" />}
           </li>
         );
       })}

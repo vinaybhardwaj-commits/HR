@@ -13,7 +13,7 @@ export type HodPanelRow = {
 
 const STATUS_LABEL: Record<string, string> = {
   invited: 'awaiting self-appraisal', self_submitted: 'READY TO SCORE', scored: 'scored — HOD must hold the 1:1 and mark it',
-  discussed: 'awaiting employee sign-off', concurred: 'signed — agree', disagreed: 'signed — disagree',
+  discussed: 'discussed — accepted', concurred: 'signed — agree', disagreed: 'signed — disagree',
   hr_review: 'with HR', closed: 'closed', cancelled: 'cancelled'
 };
 

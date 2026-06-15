@@ -27,12 +27,12 @@ export default function RowActions({ appraisalId, status }: { appraisalId: strin
         </button>
       )}
       {status === 'scored' && (
-        <button disabled={busy} title="HR override: mark the 1:1 as held so the employee can sign off (Part D)"
+        <button disabled={busy} title="HR override: mark the 1:1 as held — records the appraisal as discussed & accepted"
           onClick={() => {
             const today = new Date().toISOString().slice(0, 10);
             const d = prompt(
               'HR override — mark the 1:1 discussion as held on the HOD’s behalf.\n' +
-              'This releases sign-off (Part D) to the employee and is recorded in the audit trail.\n\n' +
+              'This records the appraisal as discussed & accepted (per policy, the 1:1 is the employee\u2019s acknowledgement) and is logged in the audit trail.\n\n' +
               'Date the discussion was held (YYYY-MM-DD):',
               today
             );
