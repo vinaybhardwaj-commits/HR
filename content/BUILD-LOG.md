@@ -265,3 +265,23 @@
 - NEXT (same V request, not yet built): executive-summary PDF (leadership one-pager) and
   bulk PDF pack (ZIP of every signed appraisal) — ZIP needs a timeout-safe, dep-free
   (store-only) approach given ~74 PDFs per cycle.
+
+## Executive-summary PDF + bulk PDF pack (ZIP) — 15 Jun 2026 (V request: cycle final report, part 2/3 + 3/3)
+- Refactor: per-appraisal PDF doc moved into shared `lib/appraisal-pdf.tsx`
+  (renderAppraisalPdf → {buffer, filename, cycleId}); existing
+  /api/admin/appraisals/[id]/pdf now just auths, audits, and streams it (identical output).
+- Executive-summary PDF: `GET /api/admin/reports/summary-pdf?cycle=ID` (admin-gated,
+  @react-pdf) → one-page leadership view: completion stats, band distribution by track,
+  per-HOD calibration with >10pp/n≥3 outliers flagged, training-needs rollup. Audited
+  summary_pdf_generated.
+- Bulk PDF pack: `GET /api/admin/reports/pdf-pack?cycle=ID` (admin-gated, maxDuration 300)
+  → ZIP of every SIGNED-OFF appraisal PDF (status concurred/disagreed/hr_review/closed),
+  named <label>/<cycle>-<emp_code>-<name>.pdf, ordered by emp_code, cap 300. Empty →
+  400 with explanation. Audited pdf_pack_generated {count}.
+- ZIP is dependency-free: `lib/zip.ts` = STORE-method (no compression) writer + CRC32
+  (PDFs already compressed). Validated in sandbox with Python zipfile (testzip CRC pass,
+  byte-exact content, large-binary roundtrip) before ship. NO new npm dep → npm ci clean.
+- UI: three buttons on /admin/reports (Full Excel workbook · Cycle summary PDF · All
+  appraisal PDFs ZIP), all driven by the cycle selector.
+- TIMEOUT NOTE: pdf-pack renders ~74 PDFs (~6 queries each) in one request; pinned to
+  sin1, maxDuration 300. If a large cycle ever times out, batch the per-PDF queries.
