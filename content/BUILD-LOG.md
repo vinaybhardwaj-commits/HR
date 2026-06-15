@@ -249,3 +249,19 @@
   labels `discussion_marked` as "discussion marked held" (also tidies the HOD path).
 - Integrity note: this is an override for when the 1:1 happened but wasn't marked
   (or the HOD is unreachable) — it does not remove the discussion requirement.
+
+## Consolidated Excel workbook export — 15 Jun 2026 (V request: cycle final report)
+- New: `GET /api/admin/reports/workbook?cycle=ID` (admin-gated) → one multi-sheet
+  Excel file: Summary (cycle meta + completion + overall bands), All employees
+  (emp_code, name, dept, sub-dept, designation, track, HOD, total, %, band, status,
+  discussion date, sign-off, signed name/at), Calibration (per-HOD), Band distribution
+  (track×band), Training plan (per person). "⬇ Download full Excel workbook" button on
+  /admin/reports (uses the cycle selector).
+- Dependency-free: generated as SpreadsheetML 2003 XML in lib/workbook.ts (opens in
+  Excel + Google Sheets) — NO new npm dep, keeps `npm ci` clean. Content-Type
+  application/vnd.ms-excel, .xls filename. Validated well-formed (5 sheets, XML-escaped
+  special chars, numeric cells) via sandbox node run before ship.
+- Existing on-screen reports + 3 per-section CSVs + per-employee PDF (on close) all retained.
+- NEXT (same V request, not yet built): executive-summary PDF (leadership one-pager) and
+  bulk PDF pack (ZIP of every signed appraisal) — ZIP needs a timeout-safe, dep-free
+  (store-only) approach given ~74 PDFs per cycle.

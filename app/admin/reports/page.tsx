@@ -67,7 +67,12 @@ export default async function Reports({ searchParams }: { searchParams: { cycle?
         </form>
       </div>
       <p className="text-sm text-slate-500 mb-4">{totalScored} appraisals scored in this cycle.</p>
+      <a href={`/api/admin/reports/workbook?cycle=${cycleId}`}
+        className="inline-flex items-center gap-2 bg-brand text-white rounded-lg px-4 py-2 text-sm font-medium mb-5 hover:opacity-90">
+        ⬇ Download full Excel workbook
+      </a>
       <PageHelp items={[
+        'Download full Excel workbook gives HR one multi-sheet file (Summary, All employees, Calibration, Band distribution, Training plan) — the consolidated record to archive per cycle. The on-screen tables and per-section CSVs remain for quick looks.',
         'Calibration compares scoring patterns across HODs (count, mean/min/max %, band mix). Before sign-off, look for outliers — an HOD whose mean sits far above or below the rest may be scoring leniently or harshly rather than their team genuinely differing.',
         'Band distribution splits results by track (Clinical / Non-clinical). Bands: >80% Outstanding, >60% Commendable, >40% Adequate, else Inadequate — same thresholds as the legacy paper form.',
         'Training needs aggregates everything HODs flagged during scoring, with names — the input for the training plan.',
