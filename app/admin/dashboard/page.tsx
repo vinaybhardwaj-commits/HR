@@ -18,6 +18,7 @@ const ACTION_LABEL: Record<string, string> = {
   score_submit: 'scores submitted',
   score_submit_blocked: 'blocked re-submit attempt',
   mark_discussion: 'discussion marked held',
+  discussion_marked: 'discussion marked held',
   concur_agree: 'signed — agree',
   concur_remarks: 'signed — agree with remarks',
   concur_disagree: 'signed — DISAGREE',

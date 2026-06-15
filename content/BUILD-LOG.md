@@ -233,3 +233,19 @@
   query out of Next's data cache globally. Temp /api/admin/diag removed.
 - Lesson for the pattern library: ALWAYS pass cache:'no-store' fetchOptions when
   using @neondatabase/serverless inside Next.js App Router pages.
+
+## HR override: "Mark discussion held" — 15 Jun 2026 (V request, field feedback from Manjunath)
+- Problem: HODs scored appraisals but never marked the 1:1 as held, so every
+  employee stayed stuck at `scored` and Part D (sign-off & HR) never unlocked
+  ("not signed yet"). Only the HOD link could mark the discussion — HR had no lever.
+- Fix: new admin action `mark_discussion` on POST /api/admin/appraisals/[id]/action
+  (admin-gated). Only valid from `scored` → `discussed`; sets discussion_date
+  (defaults today, editable, YYYY-MM-DD) + discussion_marked_at. Audited as
+  action `discussion_marked` with meta { via:'hr_override', date } so the trail
+  shows HR (by email) advanced it, not the HOD. No migration (columns + transition
+  already existed). Releases Part D to the employee exactly like the HOD button.
+- UI: violet "Mark discussion held" button in RowActions on the cycle board for any
+  `scored` row (prompt confirms + collects the date). Dashboard activity feed now
+  labels `discussion_marked` as "discussion marked held" (also tidies the HOD path).
+- Integrity note: this is an override for when the 1:1 happened but wasn't marked
+  (or the HOD is unreachable) — it does not remove the discussion requirement.
